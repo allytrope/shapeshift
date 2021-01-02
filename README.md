@@ -22,5 +22,5 @@ f | Prints # of faces for each *n*-gon
 
 ## Dependencies
 Shapeshift uses Python3 along with a few packages that can be installed through the Python package manager `pip`:
-* `pygame` and `OpenGL` for visualization
+* `pygame` and `PyOpenGL` for visualization
 * `numpy` for computation
