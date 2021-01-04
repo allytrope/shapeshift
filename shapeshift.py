@@ -1,11 +1,10 @@
-import pygame
-from pygame.locals import *
-from OpenGL.GL import *
-from OpenGL.GLU import *
+# standard library imports
+from random import randint
+
+# third-party imports
 from numpy import dot, arccos
 from numpy.linalg import norm
-
-from random import randint
+import OpenGL.GL as GL
 
 
 class Polyhedron:
@@ -49,23 +48,23 @@ class Polyhedron:
         pass
 
     def draw_edges(self):
-        glBegin(GL_LINES)
+        GL.glBegin(GL.GL_LINES)
         for group in enumerate(self.edges):
             for neighbour in group[1]:
                 if group[0] < neighbour:
-                    glColor3f(self.color1, self.color2, self.color3)
-                    glVertex3fv(self.vertices[group[0]])
-                    glVertex3fv(self.vertices[neighbour])
-        glEnd()
+                    GL.glColor3f(self.color1, self.color2, self.color3)
+                    GL.glVertex3fv(self.vertices[group[0]])
+                    GL.glVertex3fv(self.vertices[neighbour])
+        GL.glEnd()
 
     def draw_faces(self):
-        glBegin(GL_LINES)
+        GL.glBegin(GL.GL_LINES)
         for face in self.faces:
             for i in range(len(face)):
                 #if face[i-1] > face[i]:
-                glVertex3fv(self.vertices[face[i-1]])
-                glVertex3fv(self.vertices[face[i]])
-        glEnd()
+                GL.glVertex3fv(self.vertices[face[i-1]])
+                GL.glVertex3fv(self.vertices[face[i]])
+        GL.glEnd()
 
 
     def rectify(self):
@@ -146,53 +145,3 @@ Tetrahedron = Polyhedron([(1, 1, 1), (-1, -1, 1), (-1, 1, -1), (1, -1, -1)],  # 
 Cube = Polyhedron([(1, 1, 1), (1, 1, -1), (1, -1, -1), (1, -1, 1), (-1, -1, 1), (-1, -1, -1), (-1, 1, -1),(-1, 1, 1)],
                  [[1, 3, 7], [0, 2, 6], [1, 3, 5], [2, 4, 0] ,[3, 5, 7] ,[4, 6, 2] ,[5, 7, 1], [6, 0, 4]],
                  [[0, 1, 2, 3], [0, 1, 6, 7], [0, 3, 4, 7], [4, 5, 6, 7], [4, 5, 2, 3], [1, 2, 5, 6]])
-
-
-def main():
-    pygame.init()
-    display = (800, 600)
-    pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
-    gluPerspective(45, (display[0] / display[1]), 0.1, 50.0)
-    glTranslatef(0.0, 0.0, -5)
-
-    # default polyhedron shown
-    shape = Cube
-    prior_polyhedra = []
-    keep_prior_polyhedra = False
-    # event loop
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_r:
-                    if keep_prior_polyhedra == True:
-                        print(shape)
-                        prior_polyhedra.append(shape)
-                    shape = shape.rectify()
-                if event.key == pygame.K_s:
-                    shape.stats()
-                if event.key == pygame.K_x:
-                    shape.full_stats()
-                if event.key == pygame.K_f:
-                    shape.face_types()
-                if event.key == pygame.K_k:
-                    keep_prior_polyhedra = not keep_prior_polyhedra
-                    if keep_prior_polyhedra == False:
-                        prior_polyhedra.clear()
-                    
-
-        glRotatef(.2, .2, 1, .2)
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-
-        # shape can change in events
-        shape.draw_edges()
-        if keep_prior_polyhedra == True:
-            for polyhedron in prior_polyhedra:
-                polyhedron.draw_edges()
-        pygame.display.flip()
-        pygame.time.wait(10)
-
-
-main()
