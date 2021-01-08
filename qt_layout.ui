@@ -36,6 +36,9 @@
       <height>501</height>
      </rect>
     </property>
+    <property name="mouseTracking">
+     <bool>false</bool>
+    </property>
    </widget>
    <widget class="QPushButton" name="button1">
     <property name="geometry">
@@ -163,8 +166,23 @@
     <addaction name="actionUndo"/>
     <addaction name="actionRedo"/>
    </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>View</string>
+    </property>
+    <addaction name="actionTetrahedron"/>
+    <addaction name="actionCube"/>
+   </widget>
+   <widget class="QMenu" name="menuModify">
+    <property name="title">
+     <string>Modify</string>
+    </property>
+    <addaction name="actionClear_prior_polyhedra"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
+   <addaction name="menuView"/>
+   <addaction name="menuModify"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionExport">
@@ -180,6 +198,21 @@
   <action name="actionRedo">
    <property name="text">
     <string>Redo</string>
+   </property>
+  </action>
+  <action name="actionTetrahedron">
+   <property name="text">
+    <string>Tetrahedron</string>
+   </property>
+  </action>
+  <action name="actionCube">
+   <property name="text">
+    <string>Cube</string>
+   </property>
+  </action>
+  <action name="actionClear_prior_polyhedra">
+   <property name="text">
+    <string>Clear prior polyhedra</string>
    </property>
   </action>
  </widget>

@@ -1,5 +1,5 @@
 # shapeshift
-A GUI application for generating and visualizing polyhedra using rectification. 
+A GUI application for generating and visualizing polyhedra using rectification and truncation. 
 
 ## Premise
 Polyhedra can be manipulated using operations to generate new polyhedra. 
@@ -16,4 +16,4 @@ Shapeshift uses Python3 along with a few packages that can be installed through 
 * `PyOpenGL` for polyhedron visualization
 * `numpy` for computation
 
-The program can then be run my executing window.py in a Python3 interpreter.
+The program can then be run by executing window.py in a Python3 interpreter.

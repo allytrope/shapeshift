@@ -25,9 +25,21 @@ class MainWindow(QtWidgets.QMainWindow):
         self.openGLWidget.paintGL = self.paint
         self.actionUndo.triggered.connect(self.undo)
         self.actionRedo.triggered.connect(self.redo)
+        self.actionTetrahedron.triggered.connect(self.Tetrahedron)
+        self.actionCube.triggered.connect(self.Cube)
+        self.actionClear_prior_polyhedra.triggered.connect(self.clear_prior_polyhedra)
         timer = QtCore.QTimer(self)
         timer.timeout.connect(self.openGLWidget.update)
         timer.start(9)
+    def Tetrahedron(self):
+        self.prior_polyhedra.append(self.current_polyhedron)
+        self.current_polyhedron = shapeshift.Tetrahedron
+    def Cube(self):
+        self.prior_polyhedra.append(self.current_polyhedron)
+        self.current_polyhedron = shapeshift.Cube
+
+    def clear_prior_polyhedra(self):
+        self.prior_polyhedra.clear()
 
     def undo(self):
         if len(self.prior_polyhedra) == 0:
@@ -47,10 +59,12 @@ class MainWindow(QtWidgets.QMainWindow):
         print("No function yet")
 
     def truncate(self):
-        print("No function yet")
+        self.prior_polyhedra.append(self.current_polyhedron)
+        self.current_polyhedron = self.current_polyhedron.truncate()
 
     def stellate(self):
-        print("No function yet")
+        #self.current_polyhedron = self.current_polyhedron.stellate()
+        pass
 
     def initialize(self):
         GLU.gluPerspective(45, 1, 0.1, 50.0)

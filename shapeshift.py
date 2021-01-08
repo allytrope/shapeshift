@@ -104,8 +104,8 @@ class Polyhedron:
 
         # creates rectified faces (new faces derived from previous faces)
         for face in self.faces:
-            # creates new vertices and faces
             new_face = []
+            # creates new vertices and faces
             for x in range(len(face)):  # x acts as counter
                 edge = [face[x-1], face[x]]
                 midpoint = find_midpoint(edge)
@@ -137,6 +137,67 @@ class Polyhedron:
             new_faces.append(ordered_indexed)
         return Polyhedron(new_vertices, new_edges, new_faces)
 
+    def truncate(self):
+        def third(given_edge):
+            new_vertex = ((self.vertices[given_edge[0]][0]/3 + self.vertices[given_edge[1]][0]*2/3),  # x coordinate
+                          (self.vertices[given_edge[0]][1]/3 + self.vertices[given_edge[1]][1]*2/3),  # y coordinate
+                          (self.vertices[given_edge[0]][2]/3 + self.vertices[given_edge[1]][2]*2/3))  # z coordinate
+            return new_vertex
+
+        new_vertices = []
+        prev_edges_count = 0
+        for face in self.faces:
+            prev_edges_count += len(face)
+        #prev_edges_count //= 2
+        additional_edges_count = 0
+        for vertex in self.vertices:
+            additional_edges_count += len(vertex)
+        total_edges_count = prev_edges_count + additional_edges_count
+        new_edges = [[] for i in range(total_edges_count)]
+        new_faces = []
+
+        # creates truncated faces (new faces derived from previous faces)
+        for face in self.faces:
+            new_face = []
+            # creates new vertices and faces
+            for x in range(len(face)):
+                edge_forward = [face[x - 1], face[x]]
+                edge_backward = [face[x], face[x - 1]]
+                third_forward = third(edge_forward)
+                third_backward = third(edge_backward)
+                #print("third forward", third_forward)
+                if third_forward not in new_vertices:
+                    new_vertices.append(third_forward)
+                if third_backward not in new_vertices:
+                    new_vertices.append(third_backward)
+                new_face.append(new_vertices.index(third_backward))
+                new_face.append(new_vertices.index(third_forward))
+            new_faces.append(new_face)
+            # creates new edges
+            for x in range(len(new_face)):
+                new_edges[new_face[x-1]].append(new_face[x])
+                new_edges[new_face[x]].append(new_face[x-1])
+
+            print(new_vertices)
+        # creates new faces (new faces derived from previous vertices)
+
+
+        return Polyhedron(new_vertices, new_edges, new_faces)
+
+    def stellate(self):
+        print("Stellation function is under development")
+        '''
+        for face in self.faces:
+            center = 
+        '''
+    def greatening(self):
+        pass
+
+
+        new_vertices = self.vertices
+        new_edges = self.edges
+        new_faces = self.faces
+        return Polyhedron(new_vertices, new_edges, new_faces)
 
 Tetrahedron = Polyhedron([(1, 1, 1), (-1, -1, 1), (-1, 1, -1), (1, -1, -1)],  # vertices
                          [[1, 2, 3], [0, 2, 3], [0, 1, 3], [0, 1, 2]],  # edges as adjacency matrix
@@ -145,3 +206,11 @@ Tetrahedron = Polyhedron([(1, 1, 1), (-1, -1, 1), (-1, 1, -1), (1, -1, -1)],  # 
 Cube = Polyhedron([(1, 1, 1), (1, 1, -1), (1, -1, -1), (1, -1, 1), (-1, -1, 1), (-1, -1, -1), (-1, 1, -1),(-1, 1, 1)],
                  [[1, 3, 7], [0, 2, 6], [1, 3, 5], [2, 4, 0] ,[3, 5, 7] ,[4, 6, 2] ,[5, 7, 1], [6, 0, 4]],
                  [[0, 1, 2, 3], [0, 1, 6, 7], [0, 3, 4, 7], [4, 5, 6, 7], [4, 5, 2, 3], [1, 2, 5, 6]])
+
+'''
+phi = (1 + 5**0.5)/2
+
+Dodecahedron = Polyhedron([(1, 1, 1), (1, 1, -1), (1, -1, 1), (-1, 1, 1), (-1, 1, -1), (-1, -1, 1), (1, -1, -1), (-1, -1, -1), (0, phi, 1/phi), (0, phi, -1/phi), (0, -phi, 1/phi), (0, -phi, -1/phi), (1/phi, 0, phi), (1/phi, 0, -phi), (-1/phi, 0, phi), (-1/phi, 0, -phi), (phi, 1/phi, 0), (phi, -1/phi, 0), (-phi, 0, 1/phi), (-phi, 0, -1/phi)]
+[[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []],
+[[], [], [], [], [], [], [], [], [], [], [], []])
+'''
