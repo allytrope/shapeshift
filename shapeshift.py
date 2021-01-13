@@ -1,5 +1,6 @@
 # standard library imports
 from random import randint
+from math import isclose
 
 # third-party imports
 from numpy import dot, arccos
@@ -34,8 +35,8 @@ class Polyhedron:
         print("Faces: ", self.faces)
 
     def face_types(self):
-        polygon_names = {3:"triangles", 4:"quadrilaterals", 5:"pentagons", 6:"hexagons"}
-        polygon_counts = [0, 0, 0, 0, 0, 0]
+        polygon_names = {1:"monogon", 2:"digon", 3:"triangles", 4:"quadrilaterals", 5:"pentagons", 6:"hexagons", 7:"heptagon", 8:"octagon"}
+        polygon_counts = [0, 0, 0, 0, 0, 0, 0, 0]
         for face in self.faces:
             polygon_counts[len(face) - 3] += 1
         index = 0
@@ -62,36 +63,36 @@ class Polyhedron:
         for face in self.faces:
             for i in range(len(face)):
                 #if face[i-1] > face[i]:
-                GL.glVertex3fv(self.vertices[face[i-1]])
+                GL.glVertex3fv(self.vertices[face[i - 1]])
                 GL.glVertex3fv(self.vertices[face[i]])
         GL.glEnd()
 
+    # used in rectify() and truncate()
+    def __convex_hull(self, vertices):
+        ordered_vertices = [vertices[0]]  # index corresponds to index in angles
+        while len(ordered_vertices) != len(vertices):
+            tested_vertices = []  # index corresponds to index in angles
+            angles = []  # index corresponds to index in tested_vertices
+            for vertex in vertices:
+                if vertex not in (ordered_vertices or tested_vertices):
+                    vector1 = ordered_vertices[-1]
+                    vector2 = vertex
+                    #finds angle between vertices[0] and other vertex
+                    angle = arccos(dot(vector1, vector2)/(norm(vector1)*norm(vector2)))
+                    tested_vertices.append(vertex)
+                    angles.append(angle)
+            # adds vertex with smallest angle
+            index = angles.index(min(angles))
+            ordered_vertices.append(tested_vertices[index])  # adds next vertex in order
+        return ordered_vertices
 
     def rectify(self):
         print("Rectifying")
         def find_midpoint(given_edge):
-            new_vertex = ((self.vertices[given_edge[0]][0] + self.vertices[given_edge[1]][0]) / 2,  # x coordinate
-                          (self.vertices[given_edge[0]][1] + self.vertices[given_edge[1]][1]) / 2,  # y coordinate
-                          (self.vertices[given_edge[0]][2] + self.vertices[given_edge[1]][2]) / 2)  # z coordinate
+            new_vertex = ((self.vertices[given_edge[0]][0] + self.vertices[given_edge[1]][0])/2,  # x coordinate
+                          (self.vertices[given_edge[0]][1] + self.vertices[given_edge[1]][1])/2,  # y coordinate
+                          (self.vertices[given_edge[0]][2] + self.vertices[given_edge[1]][2])/2)  # z coordinate
             return new_vertex
-
-        def convex_hull(vertices):
-            ordered_vertices = [vertices[0]]  # index corresponds to index in angles
-            while len(ordered_vertices) != len(vertices):
-                tested_vertices = []  # index corresponds to index in angles
-                angles = []  # index corresponds to index in tested_vertices
-                for vertex in vertices:
-                    if vertex not in (ordered_vertices or tested_vertices):
-                        vector1 = ordered_vertices[-1]
-                        vector2 = vertex
-                        #finds angle between vertices[0] and other vertex
-                        angle = arccos(dot(vector1, vector2)/(norm(vector1)*norm(vector2)))
-                        tested_vertices.append(vertex)
-                        angles.append(angle)
-                # adds vertex with smallest angle
-                index = angles.index(min(angles))
-                ordered_vertices.append(tested_vertices[index])  # adds next vertex in order
-            return ordered_vertices
 
         # arrays for new polyhedron's vertices, edges, and faces
         new_vertices = []
@@ -107,7 +108,7 @@ class Polyhedron:
             new_face = []
             # creates new vertices and faces
             for x in range(len(face)):  # x acts as counter
-                edge = [face[x-1], face[x]]
+                edge = [face[x - 1], face[x]]
                 midpoint = find_midpoint(edge)
                 if midpoint not in new_vertices:
                     new_vertices.append(midpoint)
@@ -115,8 +116,8 @@ class Polyhedron:
             new_faces.append(new_face)
             # creates new edges
             for x in range(len(new_face)):
-                new_edges[new_face[x-1]].append(new_face[x])
-                new_edges[new_face[x]].append(new_face[x-1])
+                new_edges[new_face[x - 1]].append(new_face[x])
+                new_edges[new_face[x]].append(new_face[x - 1])
 
         # creates new faces (new faces derived from previous vertices)
         for vertex_index in range(len(self.vertices)):  # vertex_index = 0, 1, 2, ... n
@@ -129,7 +130,7 @@ class Polyhedron:
             # orders vertices of face
             for vertex_index in face:
                 unordered.append(new_vertices[vertex_index])
-            ordered = convex_hull(unordered)
+            ordered = self.__convex_hull(unordered)
             ordered_indexed = []
             # converts vertices to corresponding indices
             for vertex in ordered:
@@ -138,7 +139,7 @@ class Polyhedron:
         return Polyhedron(new_vertices, new_edges, new_faces)
 
     def truncate(self):
-        def third(given_edge):
+        def find_third(given_edge):
             new_vertex = ((self.vertices[given_edge[0]][0]/3 + self.vertices[given_edge[1]][0]*2/3),  # x coordinate
                           (self.vertices[given_edge[0]][1]/3 + self.vertices[given_edge[1]][1]*2/3),  # y coordinate
                           (self.vertices[given_edge[0]][2]/3 + self.vertices[given_edge[1]][2]*2/3))  # z coordinate
@@ -146,42 +147,61 @@ class Polyhedron:
 
         new_vertices = []
         prev_edges_count = 0
-        for face in self.faces:
-            prev_edges_count += len(face)
-        #prev_edges_count //= 2
-        additional_edges_count = 0
-        for vertex in self.vertices:
-            additional_edges_count += len(vertex)
-        total_edges_count = prev_edges_count + additional_edges_count
-        new_edges = [[] for i in range(total_edges_count)]
+        for edge in self.edges:
+            prev_edges_count += len(edge)
+        
+        new_edges = [[] for i in range(prev_edges_count)]
         new_faces = []
 
         # creates truncated faces (new faces derived from previous faces)
+        c = 0
         for face in self.faces:
             new_face = []
             # creates new vertices and faces
             for x in range(len(face)):
-                edge_forward = [face[x - 1], face[x]]
-                edge_backward = [face[x], face[x - 1]]
-                third_forward = third(edge_forward)
-                third_backward = third(edge_backward)
+                edge_forward = [face[x], face[x - 1]]
+                edge_backward = [face[x - 1], face[x]]
+                third_forward = find_third(edge_forward)
+                third_backward = find_third(edge_backward)
                 #print("third forward", third_forward)
                 if third_forward not in new_vertices:
                     new_vertices.append(third_forward)
+                    print(third_forward)
+                    c += 1
                 if third_backward not in new_vertices:
                     new_vertices.append(third_backward)
-                new_face.append(new_vertices.index(third_backward))
+                    print(third_backward)
+                    c += 1
                 new_face.append(new_vertices.index(third_forward))
+                new_face.append(new_vertices.index(third_backward))
             new_faces.append(new_face)
             # creates new edges
+            #print("new_face:", new_face)
             for x in range(len(new_face)):
-                new_edges[new_face[x-1]].append(new_face[x])
-                new_edges[new_face[x]].append(new_face[x-1])
-
-            print(new_vertices)
+                print("c:", c)
+                #print(len(new_vertices), len(new_edges), new_face[x - 1])  #Try using decimal instead of float
+                if new_face[x] not in new_edges[new_face[x - 1]]:
+                    new_edges[new_face[x - 1]].append(new_face[x])
+                if new_face[x - 1] not in new_edges[new_face[x]]:
+                    new_edges[new_face[x]].append(new_face[x - 1])
+        
         # creates new faces (new faces derived from previous vertices)
-
-
+        for vertex_index in range(len(self.vertices)):  # vertex_index = 0, 1, 2, ... n
+            face = []
+            for neighbour in self.edges[vertex_index]:
+                edge = [vertex_index, neighbour]
+                third = find_third(edge)
+                face.append(new_vertices.index(third))
+            unordered = []
+            # orders vertices of face
+            for vertex_index in face:
+                unordered.append(new_vertices[vertex_index])
+            ordered = self.__convex_hull(unordered)
+            ordered_indexed = []
+            # converts vertices to corresponding indices
+            for vertex in ordered:
+                ordered_indexed.append(new_vertices.index(vertex))
+            new_faces.append(ordered_indexed)
         return Polyhedron(new_vertices, new_edges, new_faces)
 
     def stellate(self):

@@ -179,10 +179,19 @@
     </property>
     <addaction name="actionClear_prior_polyhedra"/>
    </widget>
+   <widget class="QMenu" name="menuDetails">
+    <property name="title">
+     <string>Details</string>
+    </property>
+    <addaction name="actionElement_values"/>
+    <addaction name="actionElement_count"/>
+    <addaction name="actionFace_types"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
    <addaction name="menuView"/>
    <addaction name="menuModify"/>
+   <addaction name="menuDetails"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionExport">
@@ -213,6 +222,21 @@
   <action name="actionClear_prior_polyhedra">
    <property name="text">
     <string>Clear prior polyhedra</string>
+   </property>
+  </action>
+  <action name="actionElement_values">
+   <property name="text">
+    <string>Element values</string>
+   </property>
+  </action>
+  <action name="actionElement_count">
+   <property name="text">
+    <string>Element count</string>
+   </property>
+  </action>
+  <action name="actionFace_types">
+   <property name="text">
+    <string>Face types</string>
    </property>
   </action>
  </widget>

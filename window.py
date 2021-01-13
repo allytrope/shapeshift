@@ -28,6 +28,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actionTetrahedron.triggered.connect(self.Tetrahedron)
         self.actionCube.triggered.connect(self.Cube)
         self.actionClear_prior_polyhedra.triggered.connect(self.clear_prior_polyhedra)
+        self.actionElement_values.triggered.connect(self.element_values)
+        self.actionElement_count.triggered.connect(self.element_count)
+        self.actionFace_types.triggered.connect(self.face_types)
         timer = QtCore.QTimer(self)
         timer.timeout.connect(self.openGLWidget.update)
         timer.start(9)
@@ -40,6 +43,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def clear_prior_polyhedra(self):
         self.prior_polyhedra.clear()
+
+    def element_values(self):
+        self.current_polyhedron.full_stats()
+
+    def element_count(self):
+        self.current_polyhedron.stats()
+
+    def face_types(self):
+        self.current_polyhedron.face_types()
 
     def undo(self):
         if len(self.prior_polyhedra) == 0:
