@@ -10,7 +10,7 @@ import OpenGL.GL as GL
 
 class Polyhedron:
     def __init__(self, vertices, edges, faces):
-        self.vertices = vertices  # list of tuples: [(x, y, z), (x, y, z)...]
+        self.vertices = vertices  # np.array(vertices, dtype=Decimal)  # list of tuples: [(x, y, z), (x, y, z)...]
         self.edges = edges  # primary index is one vertex and the list's entry is other
         self.faces = faces  # ordered lists of vertex indices
         
@@ -86,6 +86,15 @@ class Polyhedron:
             ordered_vertices.append(tested_vertices[index])  # adds next vertex in order
         return ordered_vertices
 
+    # finds close vertex; otherwise, returns orignal vertex
+    def __find_float_in_list(self, query_vertex, vertices):
+        for vertex in vertices:
+            if isclose(query_vertex[0], vertex[0]):
+                if isclose(query_vertex[1], vertex[1]):
+                    if isclose(query_vertex[2], vertex[2]):
+                        return True, vertex
+        return False, query_vertex
+
     def rectify(self):
         print("Rectifying")
         def find_midpoint(given_edge):
@@ -139,6 +148,7 @@ class Polyhedron:
         return Polyhedron(new_vertices, new_edges, new_faces)
 
     def truncate(self):
+        print("Truncating")
         def find_third(given_edge):
             new_vertex = ((self.vertices[given_edge[0]][0]/3 + self.vertices[given_edge[1]][0]*2/3),  # x coordinate
                           (self.vertices[given_edge[0]][1]/3 + self.vertices[given_edge[1]][1]*2/3),  # y coordinate
@@ -147,14 +157,13 @@ class Polyhedron:
 
         new_vertices = []
         prev_edges_count = 0
-        for edge in self.edges:
-            prev_edges_count += len(edge)
+        for edge_group in self.edges:
+            prev_edges_count += len(edge_group)
         
         new_edges = [[] for i in range(prev_edges_count)]
         new_faces = []
 
         # creates truncated faces (new faces derived from previous faces)
-        c = 0
         for face in self.faces:
             new_face = []
             # creates new vertices and faces
@@ -163,23 +172,17 @@ class Polyhedron:
                 edge_backward = [face[x - 1], face[x]]
                 third_forward = find_third(edge_forward)
                 third_backward = find_third(edge_backward)
-                #print("third forward", third_forward)
-                if third_forward not in new_vertices:
+                is_in_list, third_forward = self.__find_float_in_list(third_forward, new_vertices)
+                if is_in_list == False:
                     new_vertices.append(third_forward)
-                    print(third_forward)
-                    c += 1
-                if third_backward not in new_vertices:
+                is_in_list, third_backward = self.__find_float_in_list(third_backward, new_vertices)
+                if is_in_list == False:
                     new_vertices.append(third_backward)
-                    print(third_backward)
-                    c += 1
                 new_face.append(new_vertices.index(third_forward))
                 new_face.append(new_vertices.index(third_backward))
             new_faces.append(new_face)
             # creates new edges
-            #print("new_face:", new_face)
             for x in range(len(new_face)):
-                print("c:", c)
-                #print(len(new_vertices), len(new_edges), new_face[x - 1])  #Try using decimal instead of float
                 if new_face[x] not in new_edges[new_face[x - 1]]:
                     new_edges[new_face[x - 1]].append(new_face[x])
                 if new_face[x - 1] not in new_edges[new_face[x]]:
@@ -189,7 +192,7 @@ class Polyhedron:
         for vertex_index in range(len(self.vertices)):  # vertex_index = 0, 1, 2, ... n
             face = []
             for neighbour in self.edges[vertex_index]:
-                edge = [vertex_index, neighbour]
+                edge = [neighbour, vertex_index]
                 third = find_third(edge)
                 face.append(new_vertices.index(third))
             unordered = []
@@ -204,12 +207,12 @@ class Polyhedron:
             new_faces.append(ordered_indexed)
         return Polyhedron(new_vertices, new_edges, new_faces)
 
+    def dual(self):
+        print("Dual function is under development")
+
     def stellate(self):
         print("Stellation function is under development")
-        '''
-        for face in self.faces:
-            center = 
-        '''
+
     def greatening(self):
         pass
 
@@ -226,6 +229,89 @@ Tetrahedron = Polyhedron([(1, 1, 1), (-1, -1, 1), (-1, 1, -1), (1, -1, -1)],  # 
 Cube = Polyhedron([(1, 1, 1), (1, 1, -1), (1, -1, -1), (1, -1, 1), (-1, -1, 1), (-1, -1, -1), (-1, 1, -1),(-1, 1, 1)],
                  [[1, 3, 7], [0, 2, 6], [1, 3, 5], [2, 4, 0] ,[3, 5, 7] ,[4, 6, 2] ,[5, 7, 1], [6, 0, 4]],
                  [[0, 1, 2, 3], [0, 1, 6, 7], [0, 3, 4, 7], [4, 5, 6, 7], [4, 5, 2, 3], [1, 2, 5, 6]])
+
+TruncatedTruncatedCube = Polyhedron([(1.0, -0.7777777777777777, 0.5555555555555556),(1.0, -0.5555555555555556, 0.7777777777777777),(1.0, -0.1111111111111111, 1.0),
+(1.0, 0.1111111111111111, 1.0),(1.0, 0.5555555555555556, 0.7777777777777777),(1.0, 0.7777777777777777, 0.5555555555555556),
+(1.0, 1.0, 0.1111111111111111),(1.0, 1.0, -0.1111111111111111),(1.0, 0.7777777777777777, -0.5555555555555556),
+(1.0, 0.5555555555555556, -0.7777777777777777),(1.0, 0.1111111111111111, -1.0),(1.0, -0.1111111111111111, -1.0),
+(1.0, -0.5555555555555556, -0.7777777777777777),(1.0, -0.7777777777777777, -0.5555555555555556),(1.0, -1.0, -0.1111111111111111),
+(1.0, -1.0, 0.1111111111111111)], [],
+[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,13, 14, 15], [2, 4, 6]])
+
+'''
+x2 = [(-0.7777777777777777, 1.0, 0.5555555555555556),
+(-0.5555555555555556, 1.0, 0.7777777777777777),
+(-0.1111111111111111, 1.0, 1.0),
+(0.1111111111111111, 1.0, 1.0),
+(0.5555555555555556, 1.0, 0.7777777777777777),
+(0.7777777777777777, 1.0, 0.5555555555555556),
+(0.7777777777777777, 1.0, -0.5555555555555556),
+(0.5555555555555556, 1.0, -0.7777777777777777),
+(0.1111111111111111, 1.0, -1.0),
+(-0.1111111111111111, 1.0, -1.0),
+(-0.5555555555555556, 1.0, -0.7777777777777777),
+(-0.7777777777777777, 1.0, -0.5555555555555556),
+(-1.0, 1.0, -0.1111111111111111),
+(-1.0, 1.0, 0.1111111111111111)]
+c = 30
+
+x3 = [(-0.7777777777777777, 0.5555555555555556, 1.0),
+(-0.5555555555555556, 0.7777777777777777, 1.0),
+(0.5555555555555556, 0.7777777777777777, 1.0),
+(0.7777777777777777, 0.5555555555555556, 1.0),
+(0.7777777777777777, -0.5555555555555556, 1.0),
+(0.5555555555555556, -0.7777777777777777, 1.0),
+(0.1111111111111111, -1.0, 1.0),
+(-0.1111111111111111, -1.0, 1.0),
+(-0.5555555555555556, -0.7777777777777777, 1.0),
+(-0.7777777777777777, -0.5555555555555556, 1.0),
+(-1.0, -0.1111111111111111, 1.0),
+(-1.0, 0.1111111111111111, 1.0)]
+c = 42
+
+x4 = [(-1.0, 0.7777777777777777, 0.5555555555555556),
+(-1.0, 0.5555555555555556, 0.7777777777777777),
+(-1.0, -0.5555555555555556, 0.7777777777777777),
+(-1.0, -0.7777777777777777, 0.5555555555555556),
+(-1.0, -1.0, 0.1111111111111111),
+(-1.0, -1.0, -0.1111111111111111),
+(-1.0, -0.7777777777777777, -0.5555555555555556),
+(-1.0, -0.5555555555555556, -0.7777777777777777),
+(-1.0, -0.1111111111111111, -1.0),
+(-1.0, 0.1111111111111111, -1.0),
+(-1.0, 0.5555555555555556, -0.7777777777777777),
+(-1.0, 0.7777777777777777, -0.5555555555555556)]
+c = 54
+
+x5 = [(0.7777777777777777, -1.0, 0.5555555555555556),
+(0.5555555555555556, -1.0, 0.7777777777777777),
+(-0.5555555555555556, -1.0, 0.7777777777777777),
+(-0.7777777777777777, -1.0, 0.5555555555555556),
+(-0.7777777777777777, -1.0, -0.5555555555555556),
+(-0.5555555555555556, -1.0, -0.7777777777777777),
+(-0.1111111111111111, -1.0, -1.0),
+(0.1111111111111111, -1.0, -1.0),
+(0.5555555555555556, -1.0, -0.7777777777777777),
+(0.7777777777777777, -1.0, -0.5555555555555556)]
+c = 64
+
+x6 = [(-0.7777777777777777, 0.5555555555555556, -1.0),
+(-0.5555555555555556, 0.7777777777777777, -1.0),
+(0.5555555555555556, 0.7777777777777777, -1.0),
+(0.7777777777777777, 0.5555555555555556, -1.0),
+(0.7777777777777777, -0.5555555555555556, -1.0),
+(0.5555555555555556, -0.7777777777777777, -1.0),
+(-0.5555555555555556, -0.7777777777777777, -1.0),
+(-0.7777777777777777, -0.5555555555555556, -1.0)]
+c = 72
+
+x7 = [(0.1111111111111111, 1.0, 0.5555555555555556),
+(0.5555555555555556, 1.0, 0.1111111111111111),
+(1.0, 0.5555555555555556, 0.1111111111111111),
+(1.0, 0.1111111111111111, 0.5555555555555556),
+(0.5555555555555556, 0.1111111111111111, 1.0),
+(0.1111111111111111, 0.5555555555555556, 1.0)]
+'''
 
 '''
 phi = (1 + 5**0.5)/2
