@@ -16,6 +16,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.prior_polyhedra = []
         self.current_polyhedron = shapeshift.Cube
         uic.loadUi("qt_layout.ui", self)
+        
     def setupUI(self):
         self.button1.clicked.connect(self.rectify)
         self.button2.clicked.connect(self.dual)
@@ -27,6 +28,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actionRedo.triggered.connect(self.redo)
         self.actionTetrahedron.triggered.connect(self.Tetrahedron)
         self.actionCube.triggered.connect(self.Cube)
+        self.actionOctahedron.triggered.connect(self.Octahedron)
         self.actionDodecahedron.triggered.connect(self.Dodecahedron)
         self.actionClear_prior_polyhedra.triggered.connect(self.clear_prior_polyhedra)
         self.actionElement_values.triggered.connect(self.element_values)
@@ -35,12 +37,19 @@ class MainWindow(QtWidgets.QMainWindow):
         timer = QtCore.QTimer(self)
         timer.timeout.connect(self.openGLWidget.update)
         timer.start(9)
+
     def Tetrahedron(self):
         self.prior_polyhedra.append(self.current_polyhedron)
         self.current_polyhedron = shapeshift.Tetrahedron
+
     def Cube(self):
         self.prior_polyhedra.append(self.current_polyhedron)
         self.current_polyhedron = shapeshift.Cube
+
+    def Octahedron(self):
+        self.prior_polyhedra.append(self.current_polyhedron)
+        self.current_polyhedron = shapeshift.Octahedron
+
     def Dodecahedron(self):
         self.prior_polyhedra.append(self.current_polyhedron)
         self.current_polyhedron = shapeshift.Dodecahedron

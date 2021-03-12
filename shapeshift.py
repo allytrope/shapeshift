@@ -15,9 +15,9 @@ class Polyhedron:
         self.faces = faces  # ordered lists of vertex indices
         
         # determines color of the polyhedron
-        self.color1=randint(2,10)/10
-        self.color2=randint(2,10)/10
-        self.color3=randint(2,10)/10
+        self.color1 = randint(2,10)/10
+        self.color2 = randint(2,10)/10
+        self.color3 = randint(2,10)/10
 
     def stats(self):
         print("Vertices:", len(self.vertices))
@@ -35,15 +35,19 @@ class Polyhedron:
         print("Faces: ", self.faces)
 
     def face_types(self):
-        polygon_names = {1:"monogon", 2:"digon", 3:"triangles", 4:"quadrilaterals", 5:"pentagons", 6:"hexagons", 7:"heptagon", 8:"octagon"}
-        polygon_counts = [0, 0, 0, 0, 0, 0, 0, 0]
+        polygon_names = {3:"triangles", 4:"quadrilaterals", 5:"pentagons", 6:"hexagons", 7:"heptagons",
+                        8:"octagons", 9:"nonagons", 10:"decagons",11:"undecagons", 12:"dodecagons"}
+        polygon_counts = {}
         for face in self.faces:
-            polygon_counts[len(face) - 3] += 1
-        index = 0
-        for count in polygon_counts:
-            if count != 0:
-                print(polygon_names[index + 3] + ":", polygon_counts[index])
-            index += 1
+            if len(face) in polygon_counts:
+                polygon_counts[len(face)] += 1
+            else:
+                polygon_counts[len(face)] = 1
+        for key, value in polygon_counts.items():
+                if key in polygon_names:
+                    print(f"{polygon_names[key]}: {value}")
+                else:
+                    print(f"{key}-gon: {value}")
 
     def draw_vertices(self):
         pass
@@ -238,6 +242,10 @@ Tetrahedron = Polyhedron([(1, 1, 1), (-1, -1, 1), (-1, 1, -1), (1, -1, -1)],  # 
 Cube = Polyhedron([(1, 1, 1), (1, 1, -1), (1, -1, -1), (1, -1, 1), (-1, -1, 1), (-1, -1, -1), (-1, 1, -1),(-1, 1, 1)],
                  [[1, 3, 7], [0, 2, 6], [1, 3, 5], [2, 4, 0] ,[3, 5, 7] ,[4, 6, 2] ,[5, 7, 1], [6, 0, 4]],
                  [[0, 1, 2, 3], [0, 1, 6, 7], [0, 3, 4, 7], [4, 5, 6, 7], [4, 5, 2, 3], [1, 2, 5, 6]])
+
+Octahedron = Polyhedron([(0, 1, 0), (1, 0, 0), (0, 0, 1), (-1, 0, 0), (0, 0, -1), (0, -1, 0)],
+                        [[1, 2, 3, 4], [0, 2, 4, 5], [0, 1, 3, 5], [0, 2, 4, 5], [0, 1, 3, 5], [1, 2, 3, 4]],
+                        [[0, 1, 4], [0, 1, 2], [0, 2, 3], [0, 3, 4], [1, 4, 5], [1, 2, 5], [2, 3, 5], [3, 4, 5]])
 
 phi = (1 + 5**0.5)/2  # the golden ratio
 
