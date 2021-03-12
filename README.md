@@ -3,9 +3,9 @@ A GUI application for generating and visualizing polyhedra using rectification a
 
 ## Premise
 Polyhedra can be manipulated using operations to generate new polyhedra. 
-Shapeshift utilizes an operation called rectification, which constructs new vertices from midpoints. 
-These resulting polyhedra are observed in 3D rotation and provide details on vertices, edges, and faces. 
-More info on rectification can be found on the [Wikipedia page](https://en.wikipedia.org/wiki/Rectification_(geometry)).
+
+Curently implemented operations are [rectification](https://en.wikipedia.org/wiki/Rectification_(geometry)), which constructs new vertices from midpoints, and [truncation](https://en.wikipedia.org/wiki/Truncation_(geometry)), which creates new faces at each vertex.
+Shapeshift displays these resulting polyhedra in 3D rotation and provides details on vertices, edges, and faces.
 
 Additional features are expected to expand the toolbox of operations including stellation and creating duals.
 Such buttons in the GUI are currently nonfunctional.

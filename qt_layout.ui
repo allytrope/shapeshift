@@ -172,6 +172,9 @@
     </property>
     <addaction name="actionTetrahedron"/>
     <addaction name="actionCube"/>
+    <addaction name="actionOctahedron"/>
+    <addaction name="actionDodecahedron"/>
+    <addaction name="actionIcosahedron"/>
    </widget>
    <widget class="QMenu" name="menuModify">
     <property name="title">
@@ -237,6 +240,21 @@
   <action name="actionFace_types">
    <property name="text">
     <string>Face types</string>
+   </property>
+  </action>
+  <action name="actionOctahedron">
+   <property name="text">
+    <string>Octahedron</string>
+   </property>
+  </action>
+  <action name="actionDodecahedron">
+   <property name="text">
+    <string>Dodecahedron</string>
+   </property>
+  </action>
+  <action name="actionIcosahedron">
+   <property name="text">
+    <string>Icosahedron</string>
    </property>
   </action>
  </widget>

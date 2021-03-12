@@ -27,6 +27,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actionRedo.triggered.connect(self.redo)
         self.actionTetrahedron.triggered.connect(self.Tetrahedron)
         self.actionCube.triggered.connect(self.Cube)
+        self.actionDodecahedron.triggered.connect(self.Dodecahedron)
         self.actionClear_prior_polyhedra.triggered.connect(self.clear_prior_polyhedra)
         self.actionElement_values.triggered.connect(self.element_values)
         self.actionElement_count.triggered.connect(self.element_count)
@@ -40,6 +41,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def Cube(self):
         self.prior_polyhedra.append(self.current_polyhedron)
         self.current_polyhedron = shapeshift.Cube
+    def Dodecahedron(self):
+        self.prior_polyhedra.append(self.current_polyhedron)
+        self.current_polyhedron = shapeshift.Dodecahedron
 
     def clear_prior_polyhedra(self):
         self.prior_polyhedra.clear()
@@ -68,15 +72,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.current_polyhedron = self.current_polyhedron.rectify()
 
     def dual(self):
-        print("No function yet")
+        print("No dual function yet")
 
     def truncate(self):
         self.prior_polyhedra.append(self.current_polyhedron)
         self.current_polyhedron = self.current_polyhedron.truncate()
 
     def stellate(self):
-        #self.current_polyhedron = self.current_polyhedron.stellate()
-        pass
+        print("No stellation function yet")
 
     def initialize(self):
         GLU.gluPerspective(45, 1, 0.1, 50.0)
@@ -87,7 +90,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.current_polyhedron.draw_edges()
         if self.checkBox.isChecked() == True:
             for polyhedron in self.prior_polyhedra:
-                polyhedron.draw_edges()
+                polyhedron.draw_faces()
         GL.glRotatef(.2, .2, 1, .2)
 
 app = QtWidgets.QApplication(sys.argv)
