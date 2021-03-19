@@ -30,6 +30,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actionCube.triggered.connect(self.Cube)
         self.actionOctahedron.triggered.connect(self.Octahedron)
         self.actionDodecahedron.triggered.connect(self.Dodecahedron)
+        self.actionIcosahedron.triggered.connect(self.Icosahedron)
         self.actionClear_prior_polyhedra.triggered.connect(self.clear_prior_polyhedra)
         self.actionElement_values.triggered.connect(self.element_values)
         self.actionElement_count.triggered.connect(self.element_count)
@@ -53,6 +54,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def Dodecahedron(self):
         self.prior_polyhedra.append(self.current_polyhedron)
         self.current_polyhedron = shapeshift.Dodecahedron
+
+    def Icosahedron(self):
+        self.prior_polyhedra.append(self.current_polyhedron)
+        self.current_polyhedron = shapeshift.Icosahedron
 
     def clear_prior_polyhedra(self):
         self.prior_polyhedra.clear()
@@ -96,7 +101,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def paint(self):
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
-        self.current_polyhedron.draw_edges()
+        self.current_polyhedron.draw_faces()
         if self.checkBox.isChecked() == True:
             for polyhedron in self.prior_polyhedra:
                 polyhedron.draw_faces()
