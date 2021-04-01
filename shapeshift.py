@@ -1,3 +1,7 @@
+"""
+Polyhedron class, containing operational methods, and built-in base polyhedra.
+"""
+
 # standard library imports
 from random import randint
 from math import isclose
@@ -9,6 +13,8 @@ import OpenGL.GL as GL
 
 
 class Polyhedron:
+    """Store polyhedron attributes and provide operational methods to transform polyhedra."""
+
     def __init__(self, vertices, edges, faces):
         self.vertices = vertices  # list of tuples: [(x, y, z), (x, y, z)...]
         self.edges = edges  # primary index is one vertex and the list's entry is other
@@ -20,23 +26,25 @@ class Polyhedron:
         self.color3 = randint(2,10)/10
 
     def stats(self):
+        """Print number of vertices, edges, and faces."""
         print("Vertices:", len(self.vertices))
         directed_edges = 0
         for group in self.edges:
-            for neighbour in group:
-                directed_edges += 1
+            directed_edges += len(group)
         undirected_edges = directed_edges//2
         print("Edges:", undirected_edges)
         print("Faces:", len(self.faces))
 
     def full_stats(self):
+        """Print array representations of vertices, edges, and faces."""
         print("Vertices:\n")
         print("Edges:\n", self.edges)
         print("Faces:\n", self.faces)
 
     def face_types(self):
+        """Print counts of each n-gon."""
         polygon_names = {3:"triangles", 4:"quadrilaterals", 5:"pentagons", 6:"hexagons", 7:"heptagons",
-                        8:"octagons", 9:"nonagons", 10:"decagons",11:"undecagons", 12:"dodecagons"}
+                        8:"octagons", 9:"nonagons", 10:"decagons", 11:"undecagons", 12:"dodecagons"}
         polygon_counts = {}
         for face in self.faces:
             if len(face) in polygon_counts:
@@ -53,6 +61,7 @@ class Polyhedron:
         pass
 
     def draw_edges(self):
+        """Draw edges with OpenGL."""
         GL.glBegin(GL.GL_LINES)
         for group in enumerate(self.edges):
             for neighbour in group[1]:
@@ -63,6 +72,7 @@ class Polyhedron:
         GL.glEnd()
 
     def draw_faces(self):
+        """"Draw faces with OpenGL."""
         GL.glBegin(GL.GL_LINES)
         for face in self.faces:
             for i in range(len(face)):
@@ -100,6 +110,7 @@ class Polyhedron:
         return False, query_vertex
 
     def rectify(self):
+        """Perform rectification operation. Cleave vertices by marking midpoints as new vertices."""
         print("Rectifying")
         def find_midpoint(given_edge):
             new_vertex = ((self.vertices[given_edge[0]][0] + self.vertices[given_edge[1]][0])/2,  # x coordinate
@@ -152,6 +163,7 @@ class Polyhedron:
         return Polyhedron(new_vertices, new_edges, new_faces)
 
     def truncate(self):
+        """Perform truncation operation. Cleaves vertices by marking 1/3rd and 2/3rds of each edge as new vertices."""
         print("Truncating")
         def find_third(given_edge):
             new_vertex = ((self.vertices[given_edge[0]][0]/3 + self.vertices[given_edge[1]][0]*2/3),  # x coordinate
@@ -212,6 +224,7 @@ class Polyhedron:
         return Polyhedron(new_vertices, new_edges, new_faces)
 
     def dual(self):
+        """Perform dual operation. Convert center of each face into a vertex to generate """
         print("Dual function is under development")
         def find_centroid(face):
             for vertex in face:
