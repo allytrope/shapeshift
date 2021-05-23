@@ -21,6 +21,10 @@ class Polyhedron:
         self.faces = faces  # ordered lists of vertex indices
         
         # determines color of the polyhedron
+        self.randomize_color()
+
+    def randomize_color(self):
+        """Change RGB color of polyhedron."""
         self.color1 = randint(2,10)/10
         self.color2 = randint(2,10)/10
         self.color3 = randint(2,10)/10
@@ -76,7 +80,7 @@ class Polyhedron:
         GL.glBegin(GL.GL_LINES)
         for face in self.faces:
             for i in range(len(face)):
-                #if face[i-1] > face[i]:
+                GL.glColor3f(self.color1, self.color2, self.color3)
                 GL.glVertex3fv(self.vertices[face[i - 1]])
                 GL.glVertex3fv(self.vertices[face[i]])
         GL.glEnd()
