@@ -10,8 +10,6 @@ from math import isclose
 from random import randint
 
 # third-party imports
-from numpy import dot, arccos
-from numpy.linalg import norm
 import OpenGL.GL as GL
 
 
@@ -153,6 +151,41 @@ class Polyhedron:
                     if isclose(query_vertex[2], vertex[2]):
                         return True, vertex
         return False, query_vertex
+
+    def diminish(self, func, vertex, new_vertices=[]):
+        """Remove pyramid off polyhedron where apex is a vertex on the polyhedron.
+        Takes a func to determine how base of pyramid is formed.
+        Used in rectify() and truncate().
+        """
+        # create new faces (new faces derived from previous vertices)
+        unordered_face = []
+        for neighbour in vertex.neighbours:
+            midpoint = func(vertex.coordinates, neighbour.coordinates)
+            unordered_face.append((midpoint, neighbour))
+
+        # find edges by comparing endpoint faces
+        edges = []
+        for midpoint1, endpoint1 in unordered_face:
+            for midpoint2, endpoint2 in unordered_face:
+                if midpoint1 != midpoint2:
+                    for end_face in endpoint1.faces:
+                        if end_face in endpoint2.faces:
+                            edges.append((midpoint1, midpoint2))
+
+        # order vertices in face
+        face_vertices = [edges[0][0]]
+        for _ in edges:
+            for edge in edges:
+                if edge[0] == face_vertices[-1] and edge[1] not in face_vertices:
+                    face_vertices.append(edge[1])
+                    break
+        
+        # create new faces and vertices
+        new_face = []
+        for vertex in face_vertices:
+            index = new_vertices.index(vertex)
+            new_face.append(index)
+        return new_face
     
     def rectify(self):
         """Perform rectification operation. Cleave vertices by marking midpoints as new vertices."""
@@ -184,42 +217,16 @@ class Polyhedron:
                     new_vertices.append(midpoint)
                     new_face.append(len(new_vertices) - 1)
             new_faces.append(new_face)
-
+        
         # create new faces (new faces derived from previous vertices)
         for vertex in self.vertices:
-            unordered_face = []
-            for neighbour in vertex.neighbours:
-                midpoint = find_midpoint(vertex.coordinates, neighbour.coordinates)
-                unordered_face.append((midpoint, neighbour))
-
-            # find edges by comparing endpoint faces
-            edges = []
-            for midpoint1, endpoint1 in unordered_face:
-                for midpoint2, endpoint2 in unordered_face:
-                    if midpoint1 != midpoint2:
-                        for end_face in endpoint1.faces:
-                            if end_face in endpoint2.faces:
-                                edges.append((midpoint1, midpoint2))
-
-            # order vertices in face
-            face_vertices = [edges[0][0]]
-            for _ in edges:
-                for edge in edges:
-                    if edge[0] == face_vertices[-1] and edge[1] not in face_vertices:
-                        face_vertices.append(edge[1])
-                        break
-            
-            # create new faces and vertices
-            new_face = []
-            for vertex in face_vertices:
-                index = new_vertices.index(vertex)
-                new_face.append(index)
+            new_face = self.diminish(find_midpoint, vertex, new_vertices=new_vertices)
             new_faces.append(new_face)
 
         return Polyhedron(new_vertices, new_faces)
 
     def truncate(self):
-        """Perform truncation operation. Cleaves vertices by marking 1/3rd and 2/3rds of each edge as new vertices."""
+        """Perform truncation operation. Cleave vertices by marking 1/3rd and 2/3rds of each edge as new vertices."""
         print("Truncating")
         def find_third(vertex1, vertex2):
             return ((vertex1[0]*2/3 + vertex2[0]/3),  # x coordinate
@@ -229,11 +236,11 @@ class Polyhedron:
         new_vertices = []
         new_faces = []
 
-        # creates truncated faces (new faces derived from previous faces)
+        # create truncated faces (new faces derived from previous faces)
         for face in self.faces:
             new_face = []
 
-            # creates new vertices and faces
+            # create new vertices and faces
             for x in range(len(face.vertices)):
                 coordinates1 = face.vertices[x - 1].coordinates
                 coordinates2 = face.vertices[x].coordinates
@@ -251,33 +258,7 @@ class Polyhedron:
 
         # create new faces (new faces derived from previous vertices)
         for vertex in self.vertices:
-            unordered_face = []
-            for neighbour in vertex.neighbours:
-                third = find_third(vertex.coordinates, neighbour.coordinates)
-                unordered_face.append((third, neighbour))
-
-            # find edges by comparing endpoint faces
-            edges = []
-            for third1, endpoint1 in unordered_face:
-                for third2, endpoint2 in unordered_face:
-                    if third1 != third2:
-                        for end_face in endpoint1.faces:
-                            if end_face in endpoint2.faces:
-                                edges.append((third1, third2))
-
-            # order vertices in face
-            face_vertices = [edges[0][0]]
-            for _ in edges:
-                for edge in edges:
-                    if edge[0] == face_vertices[-1] and edge[1] not in face_vertices:
-                        face_vertices.append(edge[1])
-                        break
-            
-            # create new faces and vertices
-            new_face = []
-            for vertex in face_vertices:
-                index = new_vertices.index(vertex)
-                new_face.append(index)
+            new_face = self.diminish(find_third, vertex, new_vertices=new_vertices)
             new_faces.append(new_face)
 
         return Polyhedron(new_vertices, new_faces)
@@ -286,34 +267,11 @@ class Polyhedron:
         """Perform dual operation. Convert center of each face into a vertex to generate """
         print("Dual function is under development")
         def find_centroid(face):
-            for vertex in face:
-                pass
-        for face in self.faces:
-            for vertex_index in range(len(self.faces)):
-                edge_forward = [self.face[vertex_index - 1], self.face[vertex_index]]
-                edge_backward = [self.face[vertex_index], self.face[vertex_index - 1]]
-            centroid = find_centroid(face)
-
-        
-        #Create dictionary with centroid for each face
-
-        for vertex in self.vertices:
-            #find faces with this vertex
-            #for
             pass
-
-
+  
     def stellate(self):
         print("Stellation function is under development")
 
-    def greatening(self):
-        pass
-
-
-        new_vertices = self.vertices
-        new_edges = self.edges
-        new_faces = self.faces
-        return Polyhedron(new_vertices, new_edges, new_faces)
 
 Tetrahedron = Polyhedron(
     [(1, 1, 1), (-1, -1, 1), (-1, 1, -1), (1, -1, -1)],  # vertices
