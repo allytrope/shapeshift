@@ -76,7 +76,6 @@ class MainWindow(QtWidgets.QMainWindow):
             print("No previous polyhedron")
         else:
             self.current_polyhedron = self.prior_polyhedra.pop()
-            print("here")
 
     def redo(self):
         print("No function yet")

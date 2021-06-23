@@ -6,7 +6,6 @@ Vertex and Face instances are contained within Polyhedron objects.
 # standard library imports
 from functools import reduce
 from itertools import cycle, islice
-from math import isclose
 from random import randint
 
 # third-party imports
@@ -53,7 +52,6 @@ class Face:
 
 class Polyhedron:
     """Store polyhedron attributes and provide operational methods to transform polyhedra."""
-
     def __init__(self, vertices, faces):
         # cast vertices to type Vertex
         if type(vertices) != Vertex:
@@ -142,15 +140,6 @@ class Polyhedron:
                 GL.glVertex3fv(vertex.coordinates)
                 GL.glVertex3fv(neighbour.coordinates)
         GL.glEnd()
-
-    def __find_float_in_list(self, query_vertex, vertices):
-        """Find close vertex; otherwise, return orignal vertex"""
-        for vertex in vertices:
-            if isclose(query_vertex[0], vertex[0]):
-                if isclose(query_vertex[1], vertex[1]):
-                    if isclose(query_vertex[2], vertex[2]):
-                        return True, vertex
-        return False, query_vertex
 
     def diminish(self, func, vertex, new_vertices=[]):
         """Remove pyramid off polyhedron where apex is a vertex on the polyhedron.
@@ -244,16 +233,23 @@ class Polyhedron:
             for x in range(len(face.vertices)):
                 coordinates1 = face.vertices[x - 1].coordinates
                 coordinates2 = face.vertices[x].coordinates
+
                 third_forward = find_third(coordinates1, coordinates2)
-                third_backward = find_third(coordinates2, coordinates1)
-                is_in_list, third_forward = self.__find_float_in_list(third_forward, new_vertices)
-                if is_in_list == False:
+                try:
+                    index = new_vertices.index(third_forward)
+                    new_face.append(index)
+                except ValueError:
                     new_vertices.append(third_forward)
-                is_in_list, third_backward = self.__find_float_in_list(third_backward, new_vertices)
-                if is_in_list == False:
+                    new_face.append(len(new_vertices) - 1)
+
+                third_backward = find_third(coordinates2, coordinates1)
+                try:
+                    index = new_vertices.index(third_backward)
+                    new_face.append(index)
+                except ValueError:
                     new_vertices.append(third_backward)
-                new_face.append(new_vertices.index(third_forward))
-                new_face.append(new_vertices.index(third_backward))
+                    new_face.append(len(new_vertices) - 1)
+
             new_faces.append(new_face)
 
         # create new faces (new faces derived from previous vertices)
