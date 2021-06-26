@@ -6,10 +6,10 @@ Polyhedra can be manipulated using operations to generate new polyhedra.
 
 ![Screenshot of Shapeshift](img/cube-cuboctahedron.png)
 
-Curently implemented operations are [rectification](https://en.wikipedia.org/wiki/Rectification_(geometry)), which constructs new vertices from midpoints, and [truncation](https://en.wikipedia.org/wiki/Truncation_(geometry)), which creates new faces at each vertex.
+Curently implemented operations are [rectification](https://en.wikipedia.org/wiki/Rectification_(geometry)), which constructs new vertices from midpoints, [truncation](https://en.wikipedia.org/wiki/Truncation_(geometry)), which creates new faces at each vertex, and reciprocation, which converts vertices to faces and vice versa.
 Shapeshift displays these resulting polyhedra in 3D rotation and provides details on vertices, edges, and faces.
 
-Additional features are expected to expand the toolbox of operations including stellation and creating duals.
+Additional features are expected to expand the toolbox of operations including stellations.
 Such buttons in the GUI are currently nonfunctional.
 
 ## Dependencies

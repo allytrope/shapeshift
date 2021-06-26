@@ -19,7 +19,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
     def setupUI(self):
         self.button1.clicked.connect(self.rectify)
-        self.button2.clicked.connect(self.dual)
+        self.button2.clicked.connect(self.reciprocate)
         self.button3.clicked.connect(self.truncate)
         self.button4.clicked.connect(self.stellate)
         self.openGLWidget.initializeGL = self.initialize
@@ -84,8 +84,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.prior_polyhedra.append(self.current_polyhedron)
         self.current_polyhedron = self.current_polyhedron.rectify()
 
-    def dual(self):
-        print("No dual function yet")
+    def reciprocate(self):
+        self.prior_polyhedra.append(self.current_polyhedron)
+        self.current_polyhedron = self.current_polyhedron.reciprocate()
 
     def truncate(self):
         self.prior_polyhedra.append(self.current_polyhedron)

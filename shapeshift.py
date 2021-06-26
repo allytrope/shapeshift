@@ -9,6 +9,7 @@ from itertools import cycle, islice
 from random import randint
 
 # third-party imports
+import numpy as np
 import OpenGL.GL as GL
 
 
@@ -29,7 +30,21 @@ class Vertex:
 
     @property
     def faces(self):
-        return [face for face in self.polyhedron.faces if self.idx in face._vertices]
+        # collect faces
+        faces = [face for face in self.polyhedron.faces if self.idx in face._vertices]
+
+        # order faces
+        ordered_faces = [faces.pop()]
+        while faces:
+            for face in faces:
+                for vertex in face.vertices:
+                    if self.coordinates != vertex.coordinates:
+                        if vertex in ordered_faces[-1].vertices:
+                            ordered_faces.append(face)
+                            faces.remove(face)
+                            break
+
+        return ordered_faces
 
 class Face:
     """Representation of a face used in class Polyhedron."""
@@ -45,22 +60,35 @@ class Face:
     def vertices(self):
         return list(map(lambda index: self.polyhedron.vertices[index], self._vertices))
 
+    # return number of undirected edges
+    @property
+    def edges(self):
+        forward = [(self.vertices[i - 1], self.vertices[i]) for i in range(len(self.vertices))]
+        reverse = [(self.vertices[i], self.vertices[i - 1]) for i in range(len(self.vertices))]
+        return forward + reverse
+
+    # return faces that share an edge with self
     @property
     def neighbours(self):
-        return list(map(lambda index: self.polyhedron.vertices[index], self._neighbours))
-
+        neighbour_faces = []
+        for face in self.polyhedron.faces:
+            for edge in face.edges:
+                if face != self:
+                    if edge in self.edges and face not in neighbour_faces:
+                        neighbour_faces.append(face)
+        return neighbour_faces
 
 class Polyhedron:
     """Store polyhedron attributes and provide operational methods to transform polyhedra."""
     def __init__(self, vertices, faces):
         # cast vertices to type Vertex
-        if type(vertices) != Vertex:
+        if type(vertices[0]) != Vertex:
             self.vertices = list(map(lambda vertex: Vertex(vertex, polyhedron=self, idx=vertices.index(vertex)), vertices))
         else:
             self.vertices = vertices
 
         # cast faces to type Face
-        if type(faces) != Face:
+        if type(faces[0]) != Face:
             self.faces = list(map(lambda face: Face(face, polyhedron=self), faces))
         else:
             self.faces = faces
@@ -198,7 +226,7 @@ class Polyhedron:
             for vertex, neighbour in zip(face.vertices, offset_cycle):
                 midpoint = find_midpoint(vertex.coordinates, neighbour.coordinates)
 
-                # test if midpoint is already in new_vertices, and if not, to add it
+                # test if midpoint is already in new_vertices, and if not, add it
                 try:
                     index = new_vertices.index(midpoint)
                     new_face.append(index)
@@ -259,31 +287,48 @@ class Polyhedron:
 
         return Polyhedron(new_vertices, new_faces)
 
-    def dual(self):
-        """Perform dual operation. Convert center of each face into a vertex to generate """
-        print("Dual function is under development")
-        def find_centroid(face):
-            pass
-  
+    def reciprocate(self):
+        """Perform reciprocation operation. Convert centroid of each face into a vertex and connect each adjacent centroid.
+        This implementation creates skew faces on some polyhedra."""
+        print("Reciprocating")
+        def find_centroid(vertices_coordinates):
+            return tuple(sum(np.array(vertices_coordinates))/len(vertices_coordinates))
+
+        new_vertices = []
+        new_faces = []
+        for vertex in self.vertices:
+            new_face = []
+            for face in vertex.faces:
+                #order faces
+                centroid = find_centroid([vertex.coordinates for vertex in face.vertices])
+
+                # test if centroid is already in new_vertices, and if not, add it
+                try:
+                    index = new_vertices.index(centroid)
+                    new_face.append(index)
+                except ValueError:
+                    new_vertices.append(centroid)
+                    new_face.append(len(new_vertices) - 1)
+
+            new_faces.append(new_face)
+        return Polyhedron(new_vertices, new_faces)
+
     def stellate(self):
         print("Stellation function is under development")
 
 
 Tetrahedron = Polyhedron(
     [(1, 1, 1), (-1, -1, 1), (-1, 1, -1), (1, -1, -1)],  # vertices
-    #[[1, 2, 3], [0, 2, 3], [0, 1, 3], [0, 1, 2]],  # edges as adjacency matrix of vertices
     [[0, 1, 2], [0, 2, 3], [0, 1, 3], [1, 2, 3]]  # faces as path defined by vertices
     )
 
 Cube = Polyhedron(
     [(1, 1, 1), (1, 1, -1), (1, -1, -1), (1, -1, 1), (-1, -1, 1), (-1, -1, -1), (-1, 1, -1),(-1, 1, 1)],
-    #[[1, 3, 7], [0, 2, 6], [1, 3, 5], [2, 4, 0] ,[3, 5, 7] ,[4, 6, 2] ,[5, 7, 1], [6, 0, 4]],
     [[0, 1, 2, 3], [0, 1, 6, 7], [0, 3, 4, 7], [4, 5, 6, 7], [4, 5, 2, 3], [1, 2, 5, 6]]
     )
 
 Octahedron = Polyhedron(
     [(0, 1, 0), (1, 0, 0), (0, 0, 1), (-1, 0, 0), (0, 0, -1), (0, -1, 0)],
-    #[[1, 2, 3, 4], [0, 2, 4, 5], [0, 1, 3, 5], [0, 2, 4, 5], [0, 1, 3, 5], [1, 2, 3, 4]],
     [[0, 1, 4], [0, 1, 2], [0, 2, 3], [0, 3, 4], [1, 4, 5], [1, 2, 5], [2, 3, 5], [3, 4, 5]]
     )
 
@@ -293,10 +338,6 @@ Dodecahedron = Polyhedron(
     [(1, 1, 1), (1, 1, -1), (1, -1, 1), (-1, 1, 1), (-1, 1, -1), (-1, -1, 1), (1, -1, -1), (-1, -1, -1),  # 0 through 7
     (0, phi, 1/phi), (0, phi, -1/phi), (0, -phi, 1/phi), (0, -phi, -1/phi), (1/phi, 0, phi), (1/phi, 0, -phi),  # 8 through 13
     (-1/phi, 0, phi), (-1/phi, 0, -phi), (phi, 1/phi, 0), (phi, -1/phi, 0), (-phi, 1/phi, 0), (-phi, -1/phi, 0)],  # 14 through 19
-    #[[12, 8, 16], [16, 9, 13], [12, 17, 10], [14, 8, 18], [9, 15, 18],  # 0 through 4
-    #[14, 10, 19], [17, 13, 11], [11, 15, 19], [0, 9, 3], [8, 1, 4],  # 5 through 9
-    #[2, 11, 5], [10, 6, 7], [0, 2, 14], [1, 6, 15], [12, 3, 5],  # 10 through 14
-    #[4, 13, 7], [0, 1, 17], [16, 6, 2], [3, 4, 19], [5, 18, 7]],  # 15 through 19
     [[14, 12, 2, 10, 5], [12, 0, 16, 17, 2], [2, 17, 6, 11, 10], [5, 10, 11, 7, 19], [17, 16, 1, 13, 6], [6, 13, 15, 7, 11], 
     [14, 3, 18, 19, 5], [14, 12, 0, 8, 3], [3, 8, 9, 4, 18], [19, 18, 4, 15, 7], [8, 0, 16, 1, 9], [9, 1, 13, 15, 4]]
     )
@@ -305,9 +346,6 @@ Icosahedron = Polyhedron(
     [(0, 1, phi), (0, 1, -phi), (0, -1, phi), (0, -1, -phi),  # 0 through 3
     (1, phi, 0), (1, -phi, 0), (-1, phi, 0), (-1, -phi, 0),  # 4 through 7
     (phi, 0, 1), (phi, 0, -1), (-phi, 0, 1), (-phi, 0, -1)],  # 8 through 11
-    #[[10, 6, 4, 8, 2], [4, 9, 3, 11, 6], [8, 5, 7, 0, 10], [1, 9, 5, 11, 7],
-    #[0, 6, 1, 9, 8], [7, 3, 9, 2, 8], [0, 4, 1, 11, 10], [3, 5, 11, 2, 10],
-    #[2, 5, 9, 0, 4], [3, 5, 1, 4, 8], [6, 2, 0, 11, 7], [1, 6, 10, 3, 7]],
     [[4, 0, 6], [4, 6, 1], [1, 11, 6], [6, 11, 10], [6, 10, 0],
     [3, 1, 11], [3, 11, 7], [3, 7, 5], [3, 5, 9], [3, 9, 1],
     [10, 11, 7], [1, 4, 9], [2, 8, 5], [5, 8, 9], [2, 5, 7],
