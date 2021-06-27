@@ -163,7 +163,6 @@ class Polyhedron:
         for face in self.faces:
             offset_cycle = islice(cycle(face.vertices), 1, None)
             for vertex, neighbour in zip(face.vertices, offset_cycle):
-                #print(f"{vertex.coordinates=} {neighbour.coordinates=}")
                 GL.glColor3f(self.color1, self.color2, self.color3)
                 GL.glVertex3fv(vertex.coordinates)
                 GL.glVertex3fv(neighbour.coordinates)
@@ -204,6 +203,39 @@ class Polyhedron:
             new_face.append(index)
         return new_face
     
+    def facet(self):
+        """Perform facet operation. Maintains all previous vertices, but connects them differently to form new faces on a nonconvex figure."""
+        print("Faceting")
+
+        def keep_only_neighbour(vertex1, vertex2):
+            return vertex2
+
+        new_faces = []
+        new_vertices = [vertex.coordinates for vertex in self.vertices]
+        '''
+        # find new vertices
+        for vertex in self.vertices:
+
+        for vertex, neighbour in zip(face.vertices, offset_cycle):
+            midpoint = keep_only_neighbour(vertex.coordinates, neighbour.coordinates)
+
+            # test if midpoint is already in new_vertices, and if not, add it
+            try:
+                index = new_vertices.index(midpoint)
+                new_face.append(index)
+            except ValueError:
+                new_vertices.append(midpoint)
+                new_face.append(len(new_vertices) - 1)
+        new_faces.append(new_face)
+        '''
+        # create new faces (new faces derived from previous vertices)
+        for vertex in self.vertices:
+            new_face = self.diminish(keep_only_neighbour, vertex, new_vertices=new_vertices)
+            new_faces.append(new_face)
+
+        return Polyhedron(self.vertices, new_faces)
+
+
     def rectify(self):
         """Perform rectification operation. Cleave vertices by marking midpoints as new vertices."""
         print("Rectifying")
@@ -312,9 +344,6 @@ class Polyhedron:
 
             new_faces.append(new_face)
         return Polyhedron(new_vertices, new_faces)
-
-    def stellate(self):
-        print("Stellation function is under development")
 
 
 Tetrahedron = Polyhedron(

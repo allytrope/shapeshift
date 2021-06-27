@@ -21,7 +21,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.button1.clicked.connect(self.rectify)
         self.button2.clicked.connect(self.reciprocate)
         self.button3.clicked.connect(self.truncate)
-        self.button4.clicked.connect(self.stellate)
+        self.button4.clicked.connect(self.facet)
         self.openGLWidget.initializeGL = self.initialize
         self.openGLWidget.paintGL = self.paint
         self.actionUndo.triggered.connect(self.undo)
@@ -92,8 +92,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.prior_polyhedra.append(self.current_polyhedron)
         self.current_polyhedron = self.current_polyhedron.truncate()
 
-    def stellate(self):
-        print("No stellation function yet")
+    def facet(self):
+        self.prior_polyhedra.append(self.current_polyhedron)
+        self.current_polyhedron = self.current_polyhedron.facet()
+        #print("No stellation function yet")
 
     def initialize(self):
         GLU.gluPerspective(45, 1, 0.1, 50.0)

@@ -98,10 +98,10 @@
      </rect>
     </property>
     <property name="toolTip">
-     <string>stellate</string>
+     <string>facet</string>
     </property>
     <property name="text">
-     <string>Stellate</string>
+     <string>Facet</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="checkBox">
