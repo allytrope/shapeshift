@@ -1,10 +1,9 @@
 """
-Polyhedron class, containing operational methods, and built-in base polyhedra.
+Polyhedron class, operational methods, and built-in seed polyhedra.
 Vertex and Face instances are contained within Polyhedron objects.
 """
 
 # standard library imports
-from functools import reduce
 from itertools import cycle, islice
 from random import randint
 
@@ -116,15 +115,14 @@ class Polyhedron:
     def stats(self):
         """Print number of vertices, edges, and faces."""
         print("Vertices:", len(self.vertices))
-        #edge_count = reduce(lambda x, y: len(x.neighbours) + len(y.neighbours), self.vertices)/2
-        #print("Edges:", edge_count)
+        print("Edges:", sum([len(face.vertices) for face in self.faces])//2)
         print("Faces:", len(self.faces))
 
     def full_stats(self):
         """Print array representations of vertices, edges, and faces."""
-        print("Vertices:\n", self.vertices)
+        print("Vertices:\n", [vertex.coordinates for vertex in self.vertices])
         #print("Edges:\n", self.edges)
-        print("Faces:\n", self.faces)
+        print("Faces:\n", [[vertex.idx for vertex in face.vertices] for face in self.faces])
 
     def face_types(self):
         """Print counts of each n-gon."""
@@ -168,7 +166,21 @@ class Polyhedron:
                 GL.glVertex3fv(neighbour.coordinates)
         GL.glEnd()
 
-    def diminish(self, func, vertex, new_vertices=[]):
+
+class Operations:
+    """This class contains operations to be performed on instances of class Polyhedron."""
+    @staticmethod
+    def __add_to_list(point, new_vertices, new_face):
+        """Test if point already in new_vertices, and if not, add it"""
+        try:
+            index = new_vertices.index(point)
+            new_face.append(index)
+        except ValueError:
+            new_vertices.append(point)
+            new_face.append(len(new_vertices) - 1)
+
+    @staticmethod
+    def diminish(func, vertex, new_vertices):
         """Remove pyramid off polyhedron where apex is a vertex on the polyhedron.
         Takes a func to determine how base of pyramid is formed.
         Used in rectify() and truncate().
@@ -203,40 +215,26 @@ class Polyhedron:
             new_face.append(index)
         return new_face
     
-    def facet(self):
-        """Perform facet operation. Maintains all previous vertices, but connects them differently to form new faces on a nonconvex figure."""
+    @classmethod
+    def facet(cls, polyhedron):
+        """Perform facet operation. Maintain all previous vertices, but connect them differently to form new faces on a nonconvex figure."""
         print("Faceting")
 
         def keep_only_neighbour(vertex1, vertex2):
             return vertex2
 
         new_faces = []
-        new_vertices = [vertex.coordinates for vertex in self.vertices]
-        '''
-        # find new vertices
-        for vertex in self.vertices:
+        new_vertices = [vertex.coordinates for vertex in polyhedron.vertices]
 
-        for vertex, neighbour in zip(face.vertices, offset_cycle):
-            midpoint = keep_only_neighbour(vertex.coordinates, neighbour.coordinates)
-
-            # test if midpoint is already in new_vertices, and if not, add it
-            try:
-                index = new_vertices.index(midpoint)
-                new_face.append(index)
-            except ValueError:
-                new_vertices.append(midpoint)
-                new_face.append(len(new_vertices) - 1)
-        new_faces.append(new_face)
-        '''
         # create new faces (new faces derived from previous vertices)
-        for vertex in self.vertices:
-            new_face = self.diminish(keep_only_neighbour, vertex, new_vertices=new_vertices)
+        for vertex in polyhedron.vertices:
+            new_face = cls.diminish(keep_only_neighbour, vertex, new_vertices)
             new_faces.append(new_face)
 
-        return Polyhedron(self.vertices, new_faces)
+        return Polyhedron(polyhedron.vertices, new_faces)
 
-
-    def rectify(self):
+    @classmethod
+    def rectify(cls, polyhedron):
         """Perform rectification operation. Cleave vertices by marking midpoints as new vertices."""
         print("Rectifying")
 
@@ -250,7 +248,7 @@ class Polyhedron:
         new_faces = []
 
         # create rectified faces (new faces derived from previous faces)
-        for face in self.faces:
+        for face in polyhedron.faces:
             new_face = []
 
             # find new vertices
@@ -259,22 +257,20 @@ class Polyhedron:
                 midpoint = find_midpoint(vertex.coordinates, neighbour.coordinates)
 
                 # test if midpoint is already in new_vertices, and if not, add it
-                try:
-                    index = new_vertices.index(midpoint)
-                    new_face.append(index)
-                except ValueError:
-                    new_vertices.append(midpoint)
-                    new_face.append(len(new_vertices) - 1)
+                cls.__add_to_list(midpoint, new_vertices, new_face)
+
             new_faces.append(new_face)
+            
         
         # create new faces (new faces derived from previous vertices)
-        for vertex in self.vertices:
-            new_face = self.diminish(find_midpoint, vertex, new_vertices=new_vertices)
+        for vertex in polyhedron.vertices:
+            new_face = cls.diminish(find_midpoint, vertex, new_vertices)
             new_faces.append(new_face)
 
         return Polyhedron(new_vertices, new_faces)
 
-    def truncate(self):
+    @classmethod
+    def truncate(cls, polyhedron):
         """Perform truncation operation. Cleave vertices by marking 1/3rd and 2/3rds of each edge as new vertices."""
         print("Truncating")
         def find_third(vertex1, vertex2):
@@ -286,7 +282,7 @@ class Polyhedron:
         new_faces = []
 
         # create truncated faces (new faces derived from previous faces)
-        for face in self.faces:
+        for face in polyhedron.faces:
             new_face = []
 
             # create new vertices and faces
@@ -295,31 +291,22 @@ class Polyhedron:
                 coordinates2 = face.vertices[x].coordinates
 
                 third_forward = find_third(coordinates1, coordinates2)
-                try:
-                    index = new_vertices.index(third_forward)
-                    new_face.append(index)
-                except ValueError:
-                    new_vertices.append(third_forward)
-                    new_face.append(len(new_vertices) - 1)
-
                 third_backward = find_third(coordinates2, coordinates1)
-                try:
-                    index = new_vertices.index(third_backward)
-                    new_face.append(index)
-                except ValueError:
-                    new_vertices.append(third_backward)
-                    new_face.append(len(new_vertices) - 1)
+
+                cls.__add_to_list(third_forward, new_vertices, new_face)
+                cls.__add_to_list(third_backward, new_vertices, new_face)
 
             new_faces.append(new_face)
 
         # create new faces (new faces derived from previous vertices)
-        for vertex in self.vertices:
-            new_face = self.diminish(find_third, vertex, new_vertices=new_vertices)
+        for vertex in polyhedron.vertices:
+            new_face = cls.diminish(find_third, vertex, new_vertices)
             new_faces.append(new_face)
 
         return Polyhedron(new_vertices, new_faces)
 
-    def reciprocate(self):
+    @classmethod
+    def reciprocate(cls, polyhedron):
         """Perform reciprocation operation. Convert centroid of each face into a vertex and connect each adjacent centroid.
         This implementation creates skew faces on some polyhedra."""
         print("Reciprocating")
@@ -328,19 +315,15 @@ class Polyhedron:
 
         new_vertices = []
         new_faces = []
-        for vertex in self.vertices:
+
+        # create new vertices and faces
+        for vertex in polyhedron.vertices:
             new_face = []
             for face in vertex.faces:
-                #order faces
                 centroid = find_centroid([vertex.coordinates for vertex in face.vertices])
 
                 # test if centroid is already in new_vertices, and if not, add it
-                try:
-                    index = new_vertices.index(centroid)
-                    new_face.append(index)
-                except ValueError:
-                    new_vertices.append(centroid)
-                    new_face.append(len(new_vertices) - 1)
+                cls.__add_to_list(centroid, new_vertices, new_face)
 
             new_faces.append(new_face)
         return Polyhedron(new_vertices, new_faces)

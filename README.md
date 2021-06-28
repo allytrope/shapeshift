@@ -10,6 +10,7 @@ The following operations can be combined in different orders to create new and c
 * [Rectification](https://en.wikipedia.org/wiki/Rectification_(geometry))- constructs new vertices from midpoints
 * [Faceting](https://en.wikipedia.org/wiki/Faceting)- keeps vertices but makes new faces from them
 * [Reciprocation](https://en.wikipedia.org/wiki/Dual_polyhedron)- converts vertices to faces and vice versa
+
 Shapeshift displays these resulting polyhedra in 3D rotation and provides details on vertices, edges, and faces.
 
 ## Dependencies

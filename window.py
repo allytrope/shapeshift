@@ -1,3 +1,5 @@
+"""Create window, the starting point for executing Shapeshift."""
+
 # standard library imports
 import sys
 
@@ -8,6 +10,7 @@ import OpenGL.GLU as GLU
 
 # local imports
 import shapeshift
+from shapeshift import Operations
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -18,19 +21,19 @@ class MainWindow(QtWidgets.QMainWindow):
         uic.loadUi("qt_layout.ui", self)
         
     def setupUI(self):
-        self.button1.clicked.connect(self.rectify)
-        self.button2.clicked.connect(self.reciprocate)
-        self.button3.clicked.connect(self.truncate)
-        self.button4.clicked.connect(self.facet)
+        self.button1.clicked.connect(lambda: self.operations(Operations.rectify))
+        self.button2.clicked.connect(lambda: self.operations(Operations.reciprocate))
+        self.button3.clicked.connect(lambda: self.operations(Operations.truncate))
+        self.button4.clicked.connect(lambda: self.operations(Operations.facet))
         self.openGLWidget.initializeGL = self.initialize
         self.openGLWidget.paintGL = self.paint
         self.actionUndo.triggered.connect(self.undo)
         self.actionRedo.triggered.connect(self.redo)
-        self.actionTetrahedron.triggered.connect(self.Tetrahedron)
-        self.actionCube.triggered.connect(self.Cube)
-        self.actionOctahedron.triggered.connect(self.Octahedron)
-        self.actionDodecahedron.triggered.connect(self.Dodecahedron)
-        self.actionIcosahedron.triggered.connect(self.Icosahedron)
+        self.actionTetrahedron.triggered.connect(lambda: self.set_current_polyhedron(shapeshift.Tetrahedron))
+        self.actionCube.triggered.connect(lambda: self.set_current_polyhedron(shapeshift.Cube))
+        self.actionOctahedron.triggered.connect(lambda: self.set_current_polyhedron(shapeshift.Octahedron))
+        self.actionDodecahedron.triggered.connect(lambda: self.set_current_polyhedron(shapeshift.Dodecahedron))
+        self.actionIcosahedron.triggered.connect(lambda: self.set_current_polyhedron(shapeshift.Icosahedron))
         self.actionClear_prior_polyhedra.triggered.connect(self.clear_prior_polyhedra)
         self.actionElement_values.triggered.connect(self.element_values)
         self.actionElement_count.triggered.connect(self.element_count)
@@ -39,25 +42,15 @@ class MainWindow(QtWidgets.QMainWindow):
         timer.timeout.connect(self.openGLWidget.update)
         timer.start(9)
 
-    def Tetrahedron(self):
+    def set_current_polyhedron(self, polyhedron):
+        """Set current_polyhedron to a seed polyhedron."""
         self.prior_polyhedra.append(self.current_polyhedron)
-        self.current_polyhedron = shapeshift.Tetrahedron
+        self.current_polyhedron = polyhedron
 
-    def Cube(self):
+    def operations(self, operation):
+        """Perform a polyhedral operation on current_polyhedron."""
         self.prior_polyhedra.append(self.current_polyhedron)
-        self.current_polyhedron = shapeshift.Cube
-
-    def Octahedron(self):
-        self.prior_polyhedra.append(self.current_polyhedron)
-        self.current_polyhedron = shapeshift.Octahedron
-
-    def Dodecahedron(self):
-        self.prior_polyhedra.append(self.current_polyhedron)
-        self.current_polyhedron = shapeshift.Dodecahedron
-
-    def Icosahedron(self):
-        self.prior_polyhedra.append(self.current_polyhedron)
-        self.current_polyhedron = shapeshift.Icosahedron
+        self.current_polyhedron = operation(self.current_polyhedron)
 
     def clear_prior_polyhedra(self):
         self.prior_polyhedra.clear()
@@ -79,23 +72,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def redo(self):
         print("No function yet")
-
-    def rectify(self):
-        self.prior_polyhedra.append(self.current_polyhedron)
-        self.current_polyhedron = self.current_polyhedron.rectify()
-
-    def reciprocate(self):
-        self.prior_polyhedra.append(self.current_polyhedron)
-        self.current_polyhedron = self.current_polyhedron.reciprocate()
-
-    def truncate(self):
-        self.prior_polyhedra.append(self.current_polyhedron)
-        self.current_polyhedron = self.current_polyhedron.truncate()
-
-    def facet(self):
-        self.prior_polyhedra.append(self.current_polyhedron)
-        self.current_polyhedron = self.current_polyhedron.facet()
-        #print("No stellation function yet")
 
     def initialize(self):
         GLU.gluPerspective(45, 1, 0.1, 50.0)
