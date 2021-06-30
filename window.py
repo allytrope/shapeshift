@@ -10,30 +10,33 @@ import OpenGL.GLU as GLU
 
 # local imports
 import shapeshift
-from shapeshift import Operations
+from operations import Operations
 
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.prior_polyhedra = []
-        self.current_polyhedron = shapeshift.Cube
+        self.current_polyhedron = shapeshift.cube
         uic.loadUi("qt_layout.ui", self)
         
     def setupUI(self):
-        self.button1.clicked.connect(lambda: self.operations(Operations.rectify))
-        self.button2.clicked.connect(lambda: self.operations(Operations.reciprocate))
-        self.button3.clicked.connect(lambda: self.operations(Operations.truncate))
-        self.button4.clicked.connect(lambda: self.operations(Operations.facet))
+        self.buttonTruncate.clicked.connect(lambda: self.operations(Operations.truncate))
+        self.buttonRectify.clicked.connect(lambda: self.operations(Operations.rectify))
+        self.buttonFacet.clicked.connect(lambda: self.operations(Operations.facet))
+        self.buttonDual.clicked.connect(lambda: self.operations(Operations.reciprocate))
+        self.buttonCap.clicked.connect(lambda: self.operations(Operations.cap))
+        self.buttonBridge.clicked.connect(lambda: self.operations(Operations.bridge))
+        self.buttonStellate.clicked.connect(lambda: self.operations(Operations.stellate))
         self.openGLWidget.initializeGL = self.initialize
         self.openGLWidget.paintGL = self.paint
         self.actionUndo.triggered.connect(self.undo)
         self.actionRedo.triggered.connect(self.redo)
-        self.actionTetrahedron.triggered.connect(lambda: self.set_current_polyhedron(shapeshift.Tetrahedron))
-        self.actionCube.triggered.connect(lambda: self.set_current_polyhedron(shapeshift.Cube))
-        self.actionOctahedron.triggered.connect(lambda: self.set_current_polyhedron(shapeshift.Octahedron))
-        self.actionDodecahedron.triggered.connect(lambda: self.set_current_polyhedron(shapeshift.Dodecahedron))
-        self.actionIcosahedron.triggered.connect(lambda: self.set_current_polyhedron(shapeshift.Icosahedron))
+        self.actionTetrahedron.triggered.connect(lambda: self.set_current_polyhedron(shapeshift.tetrahedron))
+        self.actionCube.triggered.connect(lambda: self.set_current_polyhedron(shapeshift.cube))
+        self.actionOctahedron.triggered.connect(lambda: self.set_current_polyhedron(shapeshift.octahedron))
+        self.actionDodecahedron.triggered.connect(lambda: self.set_current_polyhedron(shapeshift.dodecahedron))
+        self.actionIcosahedron.triggered.connect(lambda: self.set_current_polyhedron(shapeshift.icosahedron))
         self.actionClear_prior_polyhedra.triggered.connect(self.clear_prior_polyhedra)
         self.actionElement_values.triggered.connect(self.element_values)
         self.actionElement_count.triggered.connect(self.element_count)

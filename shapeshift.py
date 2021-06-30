@@ -6,9 +6,9 @@ Vertex and Face instances are contained within Polyhedron objects.
 # standard library imports
 from itertools import cycle, islice
 from random import randint
+import weakref
 
 # third-party imports
-import numpy as np
 import OpenGL.GL as GL
 
 
@@ -18,7 +18,7 @@ class Vertex:
         self.idx = idx
         self.coordinates = coordinates
         self._neighbours = neighbours
-        self.polyhedron = polyhedron
+        self.polyhedron = weakref.proxy(polyhedron)
 
     def __str__(self):
         return str(self.coordinates)
@@ -45,12 +45,13 @@ class Vertex:
 
         return ordered_faces
 
+
 class Face:
     """Representation of a face used in class Polyhedron."""
     def __init__(self, vertices, neighbours=[], polyhedron=None):
         self._vertices = vertices
         self._neighbours = neighbours
-        self.polyhedron = polyhedron
+        self.polyhedron = weakref.proxy(polyhedron)
 
     def __str__(self):
         return str(self.vertices)
@@ -76,6 +77,7 @@ class Face:
                     if edge in self.edges and face not in neighbour_faces:
                         neighbour_faces.append(face)
         return neighbour_faces
+
 
 class Polyhedron:
     """Store polyhedron attributes and provide operational methods to transform polyhedra."""
@@ -167,197 +169,34 @@ class Polyhedron:
         GL.glEnd()
 
 
-class Operations:
-    """This class contains operations to be performed on instances of class Polyhedron."""
-    @staticmethod
-    def __add_to_list(point, new_vertices, new_face):
-        """Test if point already in new_vertices, and if not, add it"""
-        try:
-            index = new_vertices.index(point)
-            new_face.append(index)
-        except ValueError:
-            new_vertices.append(point)
-            new_face.append(len(new_vertices) - 1)
-
-    @staticmethod
-    def diminish(func, vertex, new_vertices):
-        """Remove pyramid off polyhedron where apex is a vertex on the polyhedron.
-        Takes a func to determine how base of pyramid is formed.
-        Used in rectify() and truncate().
-        """
-        # create new faces (new faces derived from previous vertices)
-        unordered_face = []
-        for neighbour in vertex.neighbours:
-            midpoint = func(vertex.coordinates, neighbour.coordinates)
-            unordered_face.append((midpoint, neighbour))
-
-        # find edges by comparing endpoint faces
-        edges = []
-        for midpoint1, endpoint1 in unordered_face:
-            for midpoint2, endpoint2 in unordered_face:
-                if midpoint1 != midpoint2:
-                    for end_face in endpoint1.faces:
-                        if end_face in endpoint2.faces:
-                            edges.append((midpoint1, midpoint2))
-
-        # order vertices in face
-        face_vertices = [edges[0][0]]
-        for _ in edges:
-            for edge in edges:
-                if edge[0] == face_vertices[-1] and edge[1] not in face_vertices:
-                    face_vertices.append(edge[1])
-                    break
-        
-        # create new faces and vertices
-        new_face = []
-        for vertex in face_vertices:
-            index = new_vertices.index(vertex)
-            new_face.append(index)
-        return new_face
-    
-    @classmethod
-    def facet(cls, polyhedron):
-        """Perform facet operation. Maintain all previous vertices, but connect them differently to form new faces on a nonconvex figure."""
-        print("Faceting")
-
-        def keep_only_neighbour(vertex1, vertex2):
-            return vertex2
-
-        new_faces = []
-        new_vertices = [vertex.coordinates for vertex in polyhedron.vertices]
-
-        # create new faces (new faces derived from previous vertices)
-        for vertex in polyhedron.vertices:
-            new_face = cls.diminish(keep_only_neighbour, vertex, new_vertices)
-            new_faces.append(new_face)
-
-        return Polyhedron(polyhedron.vertices, new_faces)
-
-    @classmethod
-    def rectify(cls, polyhedron):
-        """Perform rectification operation. Cleave vertices by marking midpoints as new vertices."""
-        print("Rectifying")
-
-        def find_midpoint(vertex1, vertex2):
-            return ((vertex1[0] + vertex2[0])/2,  # x coordinate
-                    (vertex1[1] + vertex2[1])/2,  # y coordinate
-                    (vertex1[2] + vertex2[2])/2)  # z coordinate
-
-        # arrays for new polyhedron's vertices, edges, and faces
-        new_vertices = []
-        new_faces = []
-
-        # create rectified faces (new faces derived from previous faces)
-        for face in polyhedron.faces:
-            new_face = []
-
-            # find new vertices
-            offset_cycle = islice(cycle(face.vertices), 1, None)
-            for vertex, neighbour in zip(face.vertices, offset_cycle):
-                midpoint = find_midpoint(vertex.coordinates, neighbour.coordinates)
-
-                # test if midpoint is already in new_vertices, and if not, add it
-                cls.__add_to_list(midpoint, new_vertices, new_face)
-
-            new_faces.append(new_face)
-            
-        
-        # create new faces (new faces derived from previous vertices)
-        for vertex in polyhedron.vertices:
-            new_face = cls.diminish(find_midpoint, vertex, new_vertices)
-            new_faces.append(new_face)
-
-        return Polyhedron(new_vertices, new_faces)
-
-    @classmethod
-    def truncate(cls, polyhedron):
-        """Perform truncation operation. Cleave vertices by marking 1/3rd and 2/3rds of each edge as new vertices."""
-        print("Truncating")
-        def find_third(vertex1, vertex2):
-            return ((vertex1[0]*2/3 + vertex2[0]/3),  # x coordinate
-                    (vertex1[1]*2/3 + vertex2[1]/3),  # y coordinate
-                    (vertex1[2]*2/3 + vertex2[2]/3))  # z coordinate
-
-        new_vertices = []
-        new_faces = []
-
-        # create truncated faces (new faces derived from previous faces)
-        for face in polyhedron.faces:
-            new_face = []
-
-            # create new vertices and faces
-            for x in range(len(face.vertices)):
-                coordinates1 = face.vertices[x - 1].coordinates
-                coordinates2 = face.vertices[x].coordinates
-
-                third_forward = find_third(coordinates1, coordinates2)
-                third_backward = find_third(coordinates2, coordinates1)
-
-                cls.__add_to_list(third_forward, new_vertices, new_face)
-                cls.__add_to_list(third_backward, new_vertices, new_face)
-
-            new_faces.append(new_face)
-
-        # create new faces (new faces derived from previous vertices)
-        for vertex in polyhedron.vertices:
-            new_face = cls.diminish(find_third, vertex, new_vertices)
-            new_faces.append(new_face)
-
-        return Polyhedron(new_vertices, new_faces)
-
-    @classmethod
-    def reciprocate(cls, polyhedron):
-        """Perform reciprocation operation. Convert centroid of each face into a vertex and connect each adjacent centroid.
-        This implementation creates skew faces on some polyhedra."""
-        print("Reciprocating")
-        def find_centroid(vertices_coordinates):
-            return tuple(sum(np.array(vertices_coordinates))/len(vertices_coordinates))
-
-        new_vertices = []
-        new_faces = []
-
-        # create new vertices and faces
-        for vertex in polyhedron.vertices:
-            new_face = []
-            for face in vertex.faces:
-                centroid = find_centroid([vertex.coordinates for vertex in face.vertices])
-
-                # test if centroid is already in new_vertices, and if not, add it
-                cls.__add_to_list(centroid, new_vertices, new_face)
-
-            new_faces.append(new_face)
-        return Polyhedron(new_vertices, new_faces)
-
-
-Tetrahedron = Polyhedron(
+PHI = (1 + 5**0.5)/2
+tetrahedron = Polyhedron(
     [(1, 1, 1), (-1, -1, 1), (-1, 1, -1), (1, -1, -1)],  # vertices
     [[0, 1, 2], [0, 2, 3], [0, 1, 3], [1, 2, 3]]  # faces as path defined by vertices
     )
 
-Cube = Polyhedron(
+cube = Polyhedron(
     [(1, 1, 1), (1, 1, -1), (1, -1, -1), (1, -1, 1), (-1, -1, 1), (-1, -1, -1), (-1, 1, -1),(-1, 1, 1)],
     [[0, 1, 2, 3], [0, 1, 6, 7], [0, 3, 4, 7], [4, 5, 6, 7], [4, 5, 2, 3], [1, 2, 5, 6]]
     )
 
-Octahedron = Polyhedron(
+octahedron = Polyhedron(
     [(0, 1, 0), (1, 0, 0), (0, 0, 1), (-1, 0, 0), (0, 0, -1), (0, -1, 0)],
     [[0, 1, 4], [0, 1, 2], [0, 2, 3], [0, 3, 4], [1, 4, 5], [1, 2, 5], [2, 3, 5], [3, 4, 5]]
     )
 
-phi = (1 + 5**0.5)/2
-
-Dodecahedron = Polyhedron(
+dodecahedron = Polyhedron(
     [(1, 1, 1), (1, 1, -1), (1, -1, 1), (-1, 1, 1), (-1, 1, -1), (-1, -1, 1), (1, -1, -1), (-1, -1, -1),  # 0 through 7
-    (0, phi, 1/phi), (0, phi, -1/phi), (0, -phi, 1/phi), (0, -phi, -1/phi), (1/phi, 0, phi), (1/phi, 0, -phi),  # 8 through 13
-    (-1/phi, 0, phi), (-1/phi, 0, -phi), (phi, 1/phi, 0), (phi, -1/phi, 0), (-phi, 1/phi, 0), (-phi, -1/phi, 0)],  # 14 through 19
+    (0, PHI, 1/PHI), (0, PHI, -1/PHI), (0, -PHI, 1/PHI), (0, -PHI, -1/PHI), (1/PHI, 0, PHI), (1/PHI, 0, -PHI),  # 8 through 13
+    (-1/PHI, 0, PHI), (-1/PHI, 0, -PHI), (PHI, 1/PHI, 0), (PHI, -1/PHI, 0), (-PHI, 1/PHI, 0), (-PHI, -1/PHI, 0)],  # 14 through 19
     [[14, 12, 2, 10, 5], [12, 0, 16, 17, 2], [2, 17, 6, 11, 10], [5, 10, 11, 7, 19], [17, 16, 1, 13, 6], [6, 13, 15, 7, 11], 
     [14, 3, 18, 19, 5], [14, 12, 0, 8, 3], [3, 8, 9, 4, 18], [19, 18, 4, 15, 7], [8, 0, 16, 1, 9], [9, 1, 13, 15, 4]]
     )
 
-Icosahedron = Polyhedron(
-    [(0, 1, phi), (0, 1, -phi), (0, -1, phi), (0, -1, -phi),  # 0 through 3
-    (1, phi, 0), (1, -phi, 0), (-1, phi, 0), (-1, -phi, 0),  # 4 through 7
-    (phi, 0, 1), (phi, 0, -1), (-phi, 0, 1), (-phi, 0, -1)],  # 8 through 11
+icosahedron = Polyhedron(
+    [(0, 1, PHI), (0, 1, -PHI), (0, -1, PHI), (0, -1, -PHI),  # 0 through 3
+    (1, PHI, 0), (1, -PHI, 0), (-1, PHI, 0), (-1, -PHI, 0),  # 4 through 7
+    (PHI, 0, 1), (PHI, 0, -1), (-PHI, 0, 1), (-PHI, 0, -1)],  # 8 through 11
     [[4, 0, 6], [4, 6, 1], [1, 11, 6], [6, 11, 10], [6, 10, 0],
     [3, 1, 11], [3, 11, 7], [3, 7, 5], [3, 5, 9], [3, 9, 1],
     [10, 11, 7], [1, 4, 9], [2, 8, 5], [5, 8, 9], [2, 5, 7],
