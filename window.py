@@ -9,7 +9,7 @@ import OpenGL.GL as GL
 import OpenGL.GLU as GLU
 
 # local imports
-import shapeshift
+import polyhedra
 from operations import Operations
 
 
@@ -17,7 +17,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.prior_polyhedra = []
-        self.current_polyhedron = shapeshift.cube
+        self.current_polyhedron = polyhedra.Cube()
         uic.loadUi("qt_layout.ui", self)
         
     def setupUI(self):
@@ -32,11 +32,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.openGLWidget.paintGL = self.paint
         self.actionUndo.triggered.connect(self.undo)
         self.actionRedo.triggered.connect(self.redo)
-        self.actionTetrahedron.triggered.connect(lambda: self.set_current_polyhedron(shapeshift.tetrahedron))
-        self.actionCube.triggered.connect(lambda: self.set_current_polyhedron(shapeshift.cube))
-        self.actionOctahedron.triggered.connect(lambda: self.set_current_polyhedron(shapeshift.octahedron))
-        self.actionDodecahedron.triggered.connect(lambda: self.set_current_polyhedron(shapeshift.dodecahedron))
-        self.actionIcosahedron.triggered.connect(lambda: self.set_current_polyhedron(shapeshift.icosahedron))
+        self.actionTetrahedron.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.Tetrahedron()))
+        self.actionCube.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.Cube()))
+        self.actionOctahedron.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.Octahedron()))
+        self.actionDodecahedron.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.Dodecahedron()))
+        self.actionIcosahedron.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.Icosahedron()))
         self.actionClear_prior_polyhedra.triggered.connect(self.clear_prior_polyhedra)
         self.actionElement_values.triggered.connect(self.element_values)
         self.actionElement_count.triggered.connect(self.element_count)
@@ -83,9 +83,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def paint(self):
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
         self.current_polyhedron.draw_faces()
+        self.current_polyhedron.draw_edges()
         if self.checkBox.isChecked() == True:
             for polyhedron in self.prior_polyhedra:
-                polyhedron.draw_faces()
+                polyhedron.draw_edges()
         GL.glRotatef(.2, .2, 1, .2)
 
 app = QtWidgets.QApplication(sys.argv)

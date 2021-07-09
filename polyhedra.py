@@ -23,6 +23,9 @@ class Vertex:
     def __str__(self):
         return str(self.coordinates)
 
+    def __len__(self):
+        return len(self.coordinates)
+
     @property
     def neighbours(self):
         return list(map(lambda index: self.polyhedron.vertices[index], self._neighbours))
@@ -55,6 +58,9 @@ class Face:
 
     def __str__(self):
         return str(self.vertices)
+
+    def __len__(self):
+        return len(self.vertices)
 
     @property
     def vertices(self):
@@ -141,21 +147,6 @@ class Polyhedron:
                     print(f"{polygon_names[key]}: {value}")
                 else:
                     print(f"{key}-gon: {value}")
-    '''
-    def draw_vertices(self):
-        pass
-    
-    def draw_edges(self):
-        """Draw edges with OpenGL."""
-        GL.glBegin(GL.GL_LINES)
-        for group in enumerate(self.edges):
-            for neighbour in group[1]:
-                if group[0] < neighbour:
-                    GL.glColor3f(self.color1, self.color2, self.color3)
-                    GL.glVertex3fv(self.vertices[group[0]])
-                    GL.glVertex3fv(self.vertices[neighbour])
-        GL.glEnd()
-    '''
 
     def draw_faces(self):
         """"Draw faces with OpenGL."""
@@ -167,38 +158,58 @@ class Polyhedron:
                 GL.glVertex3fv(vertex.coordinates)
                 GL.glVertex3fv(neighbour.coordinates)
         GL.glEnd()
+    
+    def draw_edges(self):
+        GL.glBegin(GL.GL_LINES)
+        for face in self.faces:
+            offset_cycle = islice(cycle(face.vertices), 1, None)
+            for vertex, neighbour in zip(face.vertices, offset_cycle):
+                GL.glColor3f(self.color1, self.color2, self.color3)
+                GL.glVertex3fv(vertex.coordinates)
+                GL.glVertex3fv(neighbour.coordinates)
+        GL.glEnd()
 
 
 PHI = (1 + 5**0.5)/2
-tetrahedron = Polyhedron(
-    [(1, 1, 1), (-1, -1, 1), (-1, 1, -1), (1, -1, -1)],  # vertices
-    [[0, 1, 2], [0, 2, 3], [0, 1, 3], [1, 2, 3]]  # faces as path defined by vertices
-    )
 
-cube = Polyhedron(
-    [(1, 1, 1), (1, 1, -1), (1, -1, -1), (1, -1, 1), (-1, -1, 1), (-1, -1, -1), (-1, 1, -1),(-1, 1, 1)],
-    [[0, 1, 2, 3], [0, 1, 6, 7], [0, 3, 4, 7], [4, 5, 6, 7], [4, 5, 2, 3], [1, 2, 5, 6]]
-    )
+class Tetrahedron(Polyhedron):
+    def __init__(self):
+        vertices = [(1, 1, 1), (-1, -1, 1), (-1, 1, -1), (1, -1, -1)]
+        faces = [[0, 1, 2], [0, 2, 3], [0, 1, 3], [1, 2, 3]]
+        super().__init__(vertices, faces)
 
-octahedron = Polyhedron(
-    [(0, 1, 0), (1, 0, 0), (0, 0, 1), (-1, 0, 0), (0, 0, -1), (0, -1, 0)],
-    [[0, 1, 4], [0, 1, 2], [0, 2, 3], [0, 3, 4], [1, 4, 5], [1, 2, 5], [2, 3, 5], [3, 4, 5]]
-    )
 
-dodecahedron = Polyhedron(
-    [(1, 1, 1), (1, 1, -1), (1, -1, 1), (-1, 1, 1), (-1, 1, -1), (-1, -1, 1), (1, -1, -1), (-1, -1, -1),  # 0 through 7
-    (0, PHI, 1/PHI), (0, PHI, -1/PHI), (0, -PHI, 1/PHI), (0, -PHI, -1/PHI), (1/PHI, 0, PHI), (1/PHI, 0, -PHI),  # 8 through 13
-    (-1/PHI, 0, PHI), (-1/PHI, 0, -PHI), (PHI, 1/PHI, 0), (PHI, -1/PHI, 0), (-PHI, 1/PHI, 0), (-PHI, -1/PHI, 0)],  # 14 through 19
-    [[14, 12, 2, 10, 5], [12, 0, 16, 17, 2], [2, 17, 6, 11, 10], [5, 10, 11, 7, 19], [17, 16, 1, 13, 6], [6, 13, 15, 7, 11], 
-    [14, 3, 18, 19, 5], [14, 12, 0, 8, 3], [3, 8, 9, 4, 18], [19, 18, 4, 15, 7], [8, 0, 16, 1, 9], [9, 1, 13, 15, 4]]
-    )
+class Cube(Polyhedron):
+    def __init__(self):
+        vertices = [(1, 1, 1), (1, 1, -1), (1, -1, -1), (1, -1, 1), (-1, -1, 1), (-1, -1, -1), (-1, 1, -1),(-1, 1, 1)]
+        faces = [[0, 1, 2, 3], [0, 1, 6, 7], [0, 3, 4, 7], [4, 5, 6, 7], [4, 5, 2, 3], [1, 2, 5, 6]]
+        super().__init__(vertices, faces)
 
-icosahedron = Polyhedron(
-    [(0, 1, PHI), (0, 1, -PHI), (0, -1, PHI), (0, -1, -PHI),  # 0 through 3
-    (1, PHI, 0), (1, -PHI, 0), (-1, PHI, 0), (-1, -PHI, 0),  # 4 through 7
-    (PHI, 0, 1), (PHI, 0, -1), (-PHI, 0, 1), (-PHI, 0, -1)],  # 8 through 11
-    [[4, 0, 6], [4, 6, 1], [1, 11, 6], [6, 11, 10], [6, 10, 0],
-    [3, 1, 11], [3, 11, 7], [3, 7, 5], [3, 5, 9], [3, 9, 1],
-    [10, 11, 7], [1, 4, 9], [2, 8, 5], [5, 8, 9], [2, 5, 7],
-    [0, 4, 8], [0, 2, 8], [0, 2, 10], [2, 7, 10], [4, 8, 9]]
-    )
+
+class Octahedron(Polyhedron):
+    def __init__(self):
+        vertices = [(0, 1, 0), (1, 0, 0), (0, 0, 1), (-1, 0, 0), (0, 0, -1), (0, -1, 0)]
+        faces = [[0, 1, 4], [0, 1, 2], [0, 2, 3], [0, 3, 4], [1, 4, 5], [1, 2, 5], [2, 3, 5], [3, 4, 5]]
+        super().__init__(vertices, faces)
+
+
+class Dodecahedron(Polyhedron):
+    def __init__(self):
+        vertices = [(1, 1, 1), (1, 1, -1), (1, -1, 1), (-1, 1, 1), (-1, 1, -1), (-1, -1, 1), (1, -1, -1), (-1, -1, -1),
+                    (0, PHI, 1/PHI), (0, PHI, -1/PHI), (0, -PHI, 1/PHI), (0, -PHI, -1/PHI), (1/PHI, 0, PHI), (1/PHI, 0, -PHI),
+                    (-1/PHI, 0, PHI), (-1/PHI, 0, -PHI), (PHI, 1/PHI, 0), (PHI, -1/PHI, 0), (-PHI, 1/PHI, 0), (-PHI, -1/PHI, 0)]
+        faces = [[14, 12, 2, 10, 5], [12, 0, 16, 17, 2], [2, 17, 6, 11, 10], [5, 10, 11, 7, 19], [17, 16, 1, 13, 6], [6, 13, 15, 7, 11], 
+                 [14, 3, 18, 19, 5], [14, 12, 0, 8, 3], [3, 8, 9, 4, 18], [19, 18, 4, 15, 7], [8, 0, 16, 1, 9], [9, 1, 13, 15, 4]]
+        super().__init__(vertices, faces)
+
+
+class Icosahedron(Polyhedron):
+    def __init__(self):
+        vertices = [(0, 1, PHI), (0, 1, -PHI), (0, -1, PHI), (0, -1, -PHI),
+                    (1, PHI, 0), (1, -PHI, 0), (-1, PHI, 0), (-1, -PHI, 0),
+                    (PHI, 0, 1), (PHI, 0, -1), (-PHI, 0, 1), (-PHI, 0, -1)]
+        faces = [[4, 0, 6], [4, 6, 1], [1, 11, 6], [6, 11, 10], [6, 10, 0],
+                 [3, 1, 11], [3, 11, 7], [3, 7, 5], [3, 5, 9], [3, 9, 1],
+                 [10, 11, 7], [1, 4, 9], [2, 8, 5], [5, 8, 9], [2, 5, 7],
+                 [0, 4, 8], [0, 2, 8], [0, 2, 10], [2, 7, 10], [4, 8, 9]]
+        super().__init__(vertices, faces)

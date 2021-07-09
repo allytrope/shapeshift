@@ -5,9 +5,10 @@ from itertools import cycle, islice
 
 # third-party imports
 import numpy as np
+from sympy import Rational
 
 # local imports
-from shapeshift import Polyhedron
+from polyhedra import Polyhedron
 
 
 class Operations:
@@ -65,9 +66,9 @@ class Operations:
         """Perform truncation operation. Cleave vertices by marking 1/3rd and 2/3rds of each edge as new vertices."""
         print("Truncating")
         def find_third(vertex1, vertex2):
-            return ((vertex1[0]*2/3 + vertex2[0]/3),  # x coordinate
-                    (vertex1[1]*2/3 + vertex2[1]/3),  # y coordinate
-                    (vertex1[2]*2/3 + vertex2[2]/3))  # z coordinate
+            return ((vertex1[0]*Rational(2, 3) + vertex2[0]*Rational(1, 3)),  # x coordinate
+                    (vertex1[1]*Rational(2, 3) + vertex2[1]*Rational(1, 3)),  # y coordinate
+                    (vertex1[2]*Rational(2, 3) + vertex2[2]*Rational(1, 3)))  # z coordinate
 
         new_vertices = []
         new_faces = []
@@ -102,9 +103,9 @@ class Operations:
         print("Rectifying")
 
         def find_midpoint(vertex1, vertex2):
-            return ((vertex1[0] + vertex2[0])/2,  # x coordinate
-                    (vertex1[1] + vertex2[1])/2,  # y coordinate
-                    (vertex1[2] + vertex2[2])/2)  # z coordinate
+            return ((vertex1[0] + vertex2[0])*Rational(1, 2),  # x coordinate
+                    (vertex1[1] + vertex2[1])*Rational(1, 2),  # y coordinate
+                    (vertex1[2] + vertex2[2])*Rational(1, 2))  # z coordinate
 
         # arrays for new polyhedron's vertices, edges, and faces
         new_vertices = []
