@@ -16,9 +16,10 @@ from operations import Operations
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
-        self.prior_polyhedra = []
-        self.current_polyhedron = polyhedra.Cube()
         uic.loadUi("qt_layout.ui", self)
+        self.prior_polyhedra = []
+        self.set_current_polyhedron(polyhedra.Cube())
+        #self.current_polyhedron = polyhedra.Cube()
         
     def setupUI(self):
         self.buttonTruncate.clicked.connect(lambda: self.operations(Operations.truncate))
@@ -30,6 +31,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.buttonStellate.clicked.connect(lambda: self.operations(Operations.stellate))
         self.openGLWidget.initializeGL = self.initialize
         self.openGLWidget.paintGL = self.paint
+        #self.actionDecompose.triggered.connect(lambda: self.operations(Operations.decompose))
         self.actionUndo.triggered.connect(self.undo)
         self.actionRedo.triggered.connect(self.redo)
         self.actionTetrahedron.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.Tetrahedron()))
@@ -44,16 +46,25 @@ class MainWindow(QtWidgets.QMainWindow):
         timer = QtCore.QTimer(self)
         timer.timeout.connect(self.openGLWidget.update)
         timer.start(9)
+        
+
+    def add_list_item(self, text):
+        #for polyhedron in self.prior_polyhedron:
+        if self.current_polyhedron:
+            item = QtWidgets.QListWidgetItem(text)
+            self.listWidget.addItem(item)
 
     def set_current_polyhedron(self, polyhedron):
         """Set current_polyhedron to a seed polyhedron."""
-        self.prior_polyhedra.append(self.current_polyhedron)
+        self.prior_polyhedra.append(polyhedron)
         self.current_polyhedron = polyhedron
+        self.add_list_item(polyhedron.__class__.__name__.capitalize())
 
     def operations(self, operation):
         """Perform a polyhedral operation on current_polyhedron."""
         self.prior_polyhedra.append(self.current_polyhedron)
         self.current_polyhedron = operation(self.current_polyhedron)
+        self.add_list_item(operation.__name__.capitalize())
 
     def clear_prior_polyhedra(self):
         self.prior_polyhedra.clear()

@@ -4,6 +4,7 @@ Vertex and Face instances are contained within Polyhedron objects.
 """
 
 # standard library imports
+from functools import cached_property
 from itertools import cycle, islice
 from random import randint
 import weakref
@@ -26,11 +27,11 @@ class Vertex:
     def __len__(self):
         return len(self.coordinates)
 
-    @property
+    @cached_property
     def neighbours(self):
         return list(map(lambda index: self.polyhedron.vertices[index], self._neighbours))
 
-    @property
+    @cached_property
     def faces(self):
         # collect faces
         faces = [face for face in self.polyhedron.faces if self.idx in face._vertices]
@@ -62,19 +63,19 @@ class Face:
     def __len__(self):
         return len(self.vertices)
 
-    @property
+    @cached_property
     def vertices(self):
         return list(map(lambda index: self.polyhedron.vertices[index], self._vertices))
 
     # return number of undirected edges
-    @property
+    @cached_property
     def edges(self):
         forward = [(self.vertices[i - 1], self.vertices[i]) for i in range(len(self.vertices))]
         reverse = [(self.vertices[i], self.vertices[i - 1]) for i in range(len(self.vertices))]
         return forward + reverse
 
     # return faces that share an edge with self
-    @property
+    @cached_property
     def neighbours(self):
         neighbour_faces = []
         for face in self.polyhedron.faces:

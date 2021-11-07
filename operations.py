@@ -193,3 +193,25 @@ class Operations:
     def stellate(cls, polyhedron):
         print("Under development")
         return polyhedron
+
+    @classmethod
+    def decompose(cls, polyhedron):
+        """Separate a compound polyhedron into one of its parts. If not a compound, return original polyhedron."""
+        print("Under development")
+
+        composititions = []
+
+        connected_faces = []
+        def neighbour_recursion(connected_faces, face):
+            for neighbour in face.neighbours:
+                if neighbour not in connected_faces:
+                    connected_faces.append(neighbour)
+                    neighbour_recursion(neighbour)
+
+
+        neighbour_recursion(polyhedron.faces[0].neighbours)
+
+        if len(connected_faces) == len(polyhedron.faces):
+            return polyhedron
+        else:
+            return Polyhedron(polyhedron.vertices, connected_faces)  # change new vertices 
