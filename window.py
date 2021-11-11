@@ -1,10 +1,14 @@
 """Create window, the starting point for executing Shapeshift."""
 
 # standard library imports
+import ctypes
 import sys
+from OpenGL.raw.GL.VERSION.GL_2_0 import glGetProgramiv, glShaderSource
+from OpenGL.raw.GL.VERSION.GL_3_0 import glBindVertexArray
 
 # third-party imports
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
+import numpy as np
 import OpenGL.GL as GL
 import OpenGL.GLU as GLU
 
@@ -88,10 +92,83 @@ class MainWindow(QtWidgets.QMainWindow):
         print("No function yet")
 
     def initialize(self):
-        GLU.gluPerspective(45, 1, 0.1, 50.0)
-        GL.glTranslatef(0.0, 0.0, -5)
+        vertex_array = GL.glGenVertexArrays(1)
+        GL.glBindVertexArray(vertex_array)
+
+        buffer = GL.glGenBuffers(1)
+        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, buffer)
+        #vertices = np.array([1.0, 1.0, 1.0, -0.8, 0.8, 0.8, 1.0, -1.0, -1.0], dtype=np.float32)
+        #GL.glBufferData(GL.GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL.GL_STATIC_DRAW)
+
+        vertex_src = """
+        #version 140
+
+        in vec3 coordinates;
+
+        void main()
+        {
+            gl_Position = vec4(coordinates, 1.0);
+        }
+        """
+        vertex_shader = GL.glCreateShader(GL.GL_VERTEX_SHADER)
+        GL.glShaderSource(vertex_shader, vertex_src)
+        GL.glCompileShader(vertex_shader)
+
+        status = GL.glGetShaderiv(vertex_shader, GL.GL_COMPILE_STATUS)
+        print("status:", status)
+        log =  GL.glGetShaderInfoLog(vertex_shader)
+        print("log:", log)
+
+        fragment_src = """
+        #version 140
+
+        uniform vec3 color;
+
+        out vec4 outColor;
+
+        void main()
+        {
+            outColor = vec4(color, 0.8);
+        }
+        """
+
+        fragment_shader = GL.glCreateShader(GL.GL_FRAGMENT_SHADER)
+        GL.glShaderSource(fragment_shader, fragment_src)
+        GL.glCompileShader(fragment_shader)
+
+        status = GL.glGetShaderiv(fragment_shader, GL.GL_COMPILE_STATUS)
+        print("status:", status)
+        log =  GL.glGetShaderInfoLog(vertex_shader)
+        print("log:", log)
+
+        shader_program = GL.glCreateProgram()
+        GL.glAttachShader(shader_program, vertex_shader)
+        GL.glAttachShader(shader_program, fragment_shader)
+        GL.glBindFragDataLocation(shader_program, 0, "outColor")
+        GL.glLinkProgram(shader_program)
+        GL.glUseProgram(shader_program)
+
+        status = GL.glGetProgramiv(shader_program, GL.GL_LINK_STATUS)
+        print("Program status:", status)
+
+        # Set color of faces
+        color = GL.glGetUniformLocation(shader_program, "color")
+        GL.glUniform3f(color, 1.0, 0.0, 0.0)
+
+
+        coordinates = GL.glGetAttribLocation(shader_program, "coordinates")
+        GL.glVertexAttribPointer(coordinates, 3, GL.GL_FLOAT, GL.GL_FALSE, 0, ctypes.c_void_p(0))
+        GL.glEnableVertexAttribArray(coordinates)
+
+        #GL.glDrawArrays(GL.GL_TRIANGLES, 0, 3)
+
+        #GL.glOrtho(5.0, 5.0, 1.0, 5.0, 5.0, 5.0)
+
+        #GLU.gluPerspective(45, 1, 0.1, 50.0)
+        #GL.glTranslatef(0.0, 0.0, -5)
 
     def paint(self):
+        GL.glClearColor(0, 0, 0, 1)
         GL.glClear(GL.GL_COLOR_BUFFER_BIT)
         self.current_polyhedron.draw_faces()
         self.current_polyhedron.draw_edges()
