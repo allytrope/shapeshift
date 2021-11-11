@@ -4,8 +4,10 @@ Vertex and Face instances are contained within Polyhedron objects.
 """
 
 # standard library imports
+from ctypes import c_float
 from functools import cached_property
 from itertools import cycle, islice
+import numpy as np
 from random import randint
 import weakref
 
@@ -151,6 +153,8 @@ class Polyhedron:
 
     def draw_faces(self):
         """"Draw faces with OpenGL."""
+
+        '''
         GL.glBegin(GL.GL_LINES)
         for face in self.faces:
             offset_cycle = islice(cycle(face.vertices), 1, None)
@@ -159,8 +163,31 @@ class Polyhedron:
                 GL.glVertex3fv(vertex.coordinates)
                 GL.glVertex3fv(neighbour.coordinates)
         GL.glEnd()
+        '''
     
     def draw_edges(self):
+        #vertices = [coordinate for coordinate in vertex for vertex in self.vertices]
+        vertices = np.array([vertex.coordinates for vertex in self.vertices], dtype="float32").flatten()
+        #print("vertices=", vertices)
+        #vertices_arr = (c_float * len(vertices))(*vertices)
+        #print(vertices_arr)
+
+
+        buffer = GL.glGenBuffers(1)
+        #GL.glBindBuffer(GL.GL_ARRAY_BUFFER, buffer)
+        GL.glBufferData(GL.GL_ARRAY_BUFFER, vertices, GL.GL_DYNAMIC_DRAW)
+        
+
+
+        faces = np.array([face._vertices for face in self.faces], dtype=np.uint16).flatten()
+        face_buffer = GL.glGenBuffers(1)
+        GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, face_buffer)
+        GL.glBufferData(GL.GL_ELEMENT_ARRAY_BUFFER, faces.nbytes, faces, GL.GL_STATIC_DRAW)
+        GL.glDrawArrays(GL.GL_TRIANGLE_FAN, 0, 3)
+
+
+
+        '''
         GL.glBegin(GL.GL_LINES)
         for face in self.faces:
             offset_cycle = islice(cycle(face.vertices), 1, None)
@@ -169,7 +196,7 @@ class Polyhedron:
                 GL.glVertex3fv(vertex.coordinates)
                 GL.glVertex3fv(neighbour.coordinates)
         GL.glEnd()
-
+        '''
 
 PHI = (1 + 5**0.5)/2
 
@@ -182,7 +209,7 @@ class Tetrahedron(Polyhedron):
 
 class Cube(Polyhedron):
     def __init__(self):
-        vertices = [(1, 1, 1), (1, 1, -1), (1, -1, -1), (1, -1, 1), (-1, -1, 1), (-1, -1, -1), (-1, 1, -1),(-1, 1, 1)]
+        vertices = [(0.8, 1.0, 1.0), (1.0, 1.0, -1.0), (1.0, -1.0, -1.0), (1.0, -1.0, 1.0), (-1.0, -1.0, 1.0), (-1.0, -1.0, -1.0), (-1.0, 1.0, -1.0),(-1.0, 1.0, 1.0)]
         faces = [[0, 1, 2, 3], [0, 1, 6, 7], [0, 3, 4, 7], [4, 5, 6, 7], [4, 5, 2, 3], [1, 2, 5, 6]]
         super().__init__(vertices, faces)
 
