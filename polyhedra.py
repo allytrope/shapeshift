@@ -151,53 +151,6 @@ class Polyhedron:
                 else:
                     print(f"{key}-gon: {value}")
 
-    def draw_faces(self):
-        """"Draw faces with OpenGL."""
-
-        '''
-        GL.glBegin(GL.GL_LINES)
-        for face in self.faces:
-            offset_cycle = islice(cycle(face.vertices), 1, None)
-            for vertex, neighbour in zip(face.vertices, offset_cycle):
-                GL.glColor3f(self.color1, self.color2, self.color3)
-                GL.glVertex3fv(vertex.coordinates)
-                GL.glVertex3fv(neighbour.coordinates)
-        GL.glEnd()
-        '''
-    
-    def draw_edges(self):
-        #vertices = [coordinate for coordinate in vertex for vertex in self.vertices]
-        vertices = np.array([vertex.coordinates for vertex in self.vertices], dtype="float32").flatten()
-        #print("vertices=", vertices)
-        #vertices_arr = (c_float * len(vertices))(*vertices)
-        #print(vertices_arr)
-
-
-        buffer = GL.glGenBuffers(1)
-        #GL.glBindBuffer(GL.GL_ARRAY_BUFFER, buffer)
-        GL.glBufferData(GL.GL_ARRAY_BUFFER, vertices, GL.GL_DYNAMIC_DRAW)
-        
-
-
-        faces = np.array([face._vertices for face in self.faces], dtype=np.uint16).flatten()
-        face_buffer = GL.glGenBuffers(1)
-        GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, face_buffer)
-        GL.glBufferData(GL.GL_ELEMENT_ARRAY_BUFFER, faces.nbytes, faces, GL.GL_STATIC_DRAW)
-        GL.glDrawArrays(GL.GL_TRIANGLE_FAN, 0, 3)
-
-
-
-        '''
-        GL.glBegin(GL.GL_LINES)
-        for face in self.faces:
-            offset_cycle = islice(cycle(face.vertices), 1, None)
-            for vertex, neighbour in zip(face.vertices, offset_cycle):
-                GL.glColor3f(self.color1, self.color2, self.color3)
-                GL.glVertex3fv(vertex.coordinates)
-                GL.glVertex3fv(neighbour.coordinates)
-        GL.glEnd()
-        '''
-
 PHI = (1 + 5**0.5)/2
 
 class Tetrahedron(Polyhedron):
