@@ -49,7 +49,6 @@ class MainWindow(QtWidgets.QMainWindow):
         
 
     def add_list_item(self, text):
-        #for polyhedron in self.prior_polyhedron:
         if self.current_polyhedron:
             item = QtWidgets.QListWidgetItem(text)
             self.listWidget.addItem(item)
@@ -59,6 +58,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.prior_polyhedra.append(polyhedron)
         self.current_polyhedron = polyhedron
         self.add_list_item(polyhedron.__class__.__name__.capitalize())
+        graphics.set_buffers(polyhedron)
 
     def operations(self, operation):
         """Perform a polyhedral operation on current_polyhedron."""
