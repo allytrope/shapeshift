@@ -15,9 +15,11 @@ Shapeshift displays these resulting polyhedra in 3D rotation and provides detail
 
 ## Dependencies
 Shapeshift uses Python3 along with the following packages that can be installed through the Python package manager `pip`:
-* `pyqt5` for window and widgets
-* `PyOpenGL` for polyhedron visualization
+
+* `moderngl` for polyhedron visualization
 * `numpy` for numerical calculations
+* `pyrr` for matrix creation
+* `pyside6` for window and widgets
 * `sympy` for symbolic notation
 
-The program can then be run by executing window.py in a Python3 interpreter.
+The program can then be run by executing `window.py` in a Python3 interpreter.
