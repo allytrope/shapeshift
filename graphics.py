@@ -51,31 +51,30 @@ class ModernGLWidget(QtOpenGLWidgets.QOpenGLWidget):
             }
         """)
 
-        # Set up vertices and faces
-        vertices = np.array([vertex.coordinates for vertex in self.parent.current_polyhedron.vertices], dtype="f4").flatten()
-        faces = np.array([face._vertices for face in self.parent.current_polyhedron.faces], dtype="i4")
+        # Create VAOs for each face
+        vaos = []
+        for face in self.parent.current_polyhedron.faces:
+            positions = self.ctx.buffer(np.array([vertex.coordinates for vertex in face.vertices], dtype="f4").flatten())
 
-        self.vbo = self.ctx.buffer(vertices)
-        self.ibo = self.ctx.buffer(faces)
-
-        # Use the VBO in a VAO
-        self.vao = self.ctx.vertex_array(
-            self.prog,
-            [
-                (self.vbo, "3f", "in_vert"),
-            ],
-            self.ibo
-        )
+            vao = self.ctx.vertex_array(
+                self.prog,
+                [
+                    (positions, "3f", "in_vert")
+                ]
+            )
+            vaos.append(vao)
 
         # Set uniforms
         self.prog['color'].value = (0.4, 0.5, 0)
         self.prog['model'].write(Matrix44.from_eulers((0.4, 0.2, 0.0), dtype='f4'))
-        #q = Quaternion.from_y_rotation(np.pi / 2.0)
+        #y_rotation = Quaternion.from_y_rotation(np.pi / 2.0)
         #self.prog['y_rotation'].value =
 
         # Clear and render
         self.ctx.clear(0.2, 0, 0.2, 0)
-        self.vao.render(moderngl.LINE_LOOP)
+        self.ctx.enable(moderngl.DEPTH_TEST)
+        for vao in vaos:
+            vao.render(moderngl.LINE_LOOP)
 
         #if self.checkBox.isChecked() == True:
         #    for polyhedron in self.prior_polyhedra:
