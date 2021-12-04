@@ -13,12 +13,26 @@ from operations import Operations
 import polyhedra
 
 
+class AxisSlider(QtWidgets.QSlider):
+    def __init__(self):
+        super().__init__(QtCore.Qt.Horizontal)
+        self.setValue(50)
+
+
+class OperationButton(QtWidgets.QPushButton):
+    def __init__(self, name):
+        super().__init__(name)
+
+
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
-        print("first")
         super(MainWindow, self).__init__()
         self.setWindowTitle("Shapeshift")
-        self.setGeometry(100, 100, 800, 500)
+        self.setGeometry(100, 100, 830, 550)
+        #self.setStyleSheet("""
+        #background-color: #262626;
+        #color: #FFFFFF;
+        #""")
 
         self.prior_polyhedra = []
         self.set_current_polyhedron(polyhedra.Tetrahedron())
@@ -55,57 +69,65 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setMenuBar(menubar)
 
         # Operations tab
-        self.tab_1_layout = QtWidgets.QGridLayout()
         self.tab_1 = QtWidgets.QWidget()
-        self.truncate = QtWidgets.QPushButton("Truncate")
-        self.tab_1_layout.addWidget(self.truncate, 1, 1)
-        self.rectify = QtWidgets.QPushButton("Rectify")
-        self.tab_1_layout.addWidget(self.rectify, 2, 1)
-        self.facet = QtWidgets.QPushButton("Facet")
-        self.tab_1_layout.addWidget(self.facet, 3, 1)
-        self.dual = QtWidgets.QPushButton("Dual")
-        self.tab_1_layout.addWidget(self.dual, 2, 2)
-        self.cap = QtWidgets.QPushButton("Cap")
-        self.tab_1_layout.addWidget(self.cap, 1, 3)
-        self.bridge = QtWidgets.QPushButton("Bridge")
-        self.tab_1_layout.addWidget(self.bridge, 2, 3)
-        self.stellate = QtWidgets.QPushButton("Stellate")
-        self.tab_1_layout.addWidget(self.stellate, 3, 3)
+        self.tab_1_layout = QtWidgets.QGridLayout()
+        self.tab_1_layout.addWidget(truncate := OperationButton("Truncate"), 1, 1)
+        self.tab_1_layout.addWidget(rectify := OperationButton("Rectify"), 2, 1)
+        self.tab_1_layout.addWidget(facet := OperationButton("Facet"), 3, 1)
+        self.tab_1_layout.addWidget(dual := OperationButton("Dual"), 2, 2)
+        self.tab_1_layout.addWidget(cap := OperationButton("Cap"), 1, 3)
+        self.tab_1_layout.addWidget(bridge := OperationButton("Bridge"), 2, 3)
+        self.tab_1_layout.addWidget(stellate := OperationButton("Stellate"), 3, 3)
         self.tab_1.setLayout(self.tab_1_layout)
 
-        self.tab_2_layout = QtWidgets.QGridLayout()
         self.tab_2 = QtWidgets.QWidget()
-        self.decompose = QtWidgets.QPushButton("Decompose")
-        self.tab_2_layout.addWidget(self.decompose, 1, 1)
-        self.uncouple = QtWidgets.QPushButton("Uncouple")
-        self.tab_2_layout.addWidget(self.uncouple, 1, 2)
+        self.tab_2_layout = QtWidgets.QGridLayout()
+        self.tab_2_layout.addWidget(decompose := OperationButton("Decompose"), 1, 1)
+        self.tab_2_layout.addWidget(uncouple := OperationButton("Uncouple"), 1, 2)
         self.tab_2.setLayout(self.tab_2_layout)
+
+        self.tab_3 = QtWidgets.QWidget()
+        self.tab_3_layout = QtWidgets.QGridLayout()
+        self.tab_3_layout.addWidget(prismate := OperationButton("Prismate"), 1, 1)
+        self.tab_3.setLayout(self.tab_3_layout)
 
         # Create tab widget
         self.tab_widget = QtWidgets.QTabWidget()
-        self.tab_widget.setMaximumWidth(300)
         
-        self.tab_widget.addTab(self.tab_1, "Truncation")
-        self.tab_widget.addTab(self.tab_2, "Separation")
+        self.tab_widget.addTab(self.tab_1, "Truncate")
+        self.tab_widget.addTab(self.tab_2, "Separate")
+        self.tab_widget.addTab(self.tab_3, "Hypermutate")
+
+        # Create descriptive text box
+        self.descriptive_textbox = QtWidgets.QLabel("This is a place to describe what an operation does.")
+        self.descriptive_textbox.setWordWrap(True)
+
+        # Create left vertical box
+        self.left_vbox = QtWidgets.QVBoxLayout()
+        self.left_vbox.addWidget(self.tab_widget)
+        self.left_vbox.addWidget(self.descriptive_textbox)
+        self.left_widget = QtWidgets.QWidget()
+        self.left_widget.setLayout(self.left_vbox)
+        self.left_widget.setMaximumWidth(330)
 
         # Create horizontal box layout
         self.hbox = QtWidgets.QHBoxLayout()
-        self.hbox.addWidget(self.tab_widget)
-
-        # Create moderngl widget
-        #self.moderngl_widget = ModernGLWidget(self)
-        #self.hbox.addWidget(self.moderngl_widget)
+        self.hbox.addWidget(self.left_widget)
 
         # Create vertical box for QOpenGLWidget and QSliders
         self.vbox = QtWidgets.QVBoxLayout()
         self.vbox.addWidget(moderngl_widget := ModernGLWidget(self))
-        self.vbox.addWidget(x_slider := QtWidgets.QSlider(QtCore.Qt.Horizontal))
-        self.vbox.addWidget(y_slider := QtWidgets.QSlider(QtCore.Qt.Horizontal))
-        self.vbox.addWidget(z_slider := QtWidgets.QSlider(QtCore.Qt.Horizontal))
+        self.vbox.addWidget(x_slider := AxisSlider())
+        self.vbox.addWidget(y_slider := AxisSlider())
+        self.vbox.addWidget(z_slider := AxisSlider())
 
         self.moderngl_and_sliders = QtWidgets.QWidget()
         self.moderngl_and_sliders.setLayout(self.vbox)
         self.hbox.addWidget(self.moderngl_and_sliders)
+
+        # Add zoom slider
+        self.hbox.addWidget(zoom_slider := QtWidgets.QSlider())
+        zoom_slider.setValue(50)
 
         # Create central widget
         self.central_widget = QtWidgets.QWidget()
@@ -113,15 +135,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.central_widget)
 
         # Connect operations to buttons/actions
-        self.truncate.clicked.connect(lambda: self.operations(Operations.truncate))
-        self.rectify.clicked.connect(lambda: self.operations(Operations.rectify))
-        self.facet.clicked.connect(lambda: self.operations(Operations.facet))
-        self.dual.clicked.connect(lambda: self.operations(Operations.reciprocate))
-        self.cap.clicked.connect(lambda: self.operations(Operations.cap))
-        self.bridge.clicked.connect(lambda: self.operations(Operations.bridge))
-        self.stellate.clicked.connect(lambda: self.operations(Operations.stellate))
-        self.decompose.clicked.connect(lambda: self.operations(Operations.decompose))
-        self.uncouple.clicked.connect(lambda: self.operations(Operations.uncouple))
+        truncate.clicked.connect(lambda: self.operations(Operations.truncate))
+        rectify.clicked.connect(lambda: self.operations(Operations.rectify))
+        facet.clicked.connect(lambda: self.operations(Operations.facet))
+        dual.clicked.connect(lambda: self.operations(Operations.reciprocate))
+        cap.clicked.connect(lambda: self.operations(Operations.cap))
+        bridge.clicked.connect(lambda: self.operations(Operations.bridge))
+        stellate.clicked.connect(lambda: self.operations(Operations.stellate))
+        decompose.clicked.connect(lambda: self.operations(Operations.decompose))
+        uncouple.clicked.connect(lambda: self.operations(Operations.uncouple))
         tetrahedron_action.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.Tetrahedron()))
         cube_action.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.Cube()))
         octahedron_action.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.Octahedron()))
@@ -182,5 +204,3 @@ app_window = MainWindow()
 app_window.setupUI()
 app_window.show()
 sys.exit(app.exec())
-
-#mglw.run_window_config(WindowMGLW)
