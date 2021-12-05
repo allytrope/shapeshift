@@ -1,6 +1,7 @@
 """Create window and widgets, the starting point for executing Shapeshift."""
 
 # Standard library imports
+import random
 import sys
 
 # Third-party imports
@@ -16,7 +17,7 @@ import polyhedra
 class AxisSlider(QtWidgets.QSlider):
     def __init__(self):
         super().__init__(QtCore.Qt.Horizontal)
-        self.setValue(50)
+        self.setValue(random.randint(0, 100))
 
 
 class OperationButton(QtWidgets.QPushButton):
@@ -35,7 +36,7 @@ class MainWindow(QtWidgets.QMainWindow):
         #""")
 
         self.prior_polyhedra = []
-        self.set_current_polyhedron(polyhedra.Tetrahedron())
+        self.set_current_polyhedron(polyhedra.Octahedron())
         #self.current_polyhedron = polyhedra.Cube()
         
     def setupUI(self):
@@ -117,9 +118,12 @@ class MainWindow(QtWidgets.QMainWindow):
         # Create vertical box for QOpenGLWidget and QSliders
         self.vbox = QtWidgets.QVBoxLayout()
         self.vbox.addWidget(moderngl_widget := ModernGLWidget(self))
-        self.vbox.addWidget(x_slider := AxisSlider())
-        self.vbox.addWidget(y_slider := AxisSlider())
-        self.vbox.addWidget(z_slider := AxisSlider())
+        self.x_slider = AxisSlider()
+        self.vbox.addWidget(self.x_slider)
+        self.y_slider = AxisSlider()
+        self.vbox.addWidget(self.y_slider)
+        self.z_slider = AxisSlider()
+        self.vbox.addWidget(self.z_slider)
 
         self.moderngl_and_sliders = QtWidgets.QWidget()
         self.moderngl_and_sliders.setLayout(self.vbox)
