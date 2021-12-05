@@ -65,8 +65,14 @@ class ModernGLWidget(QtOpenGLWidgets.QOpenGLWidget):
             vaos.append(vao)
 
         # Set uniforms
-        self.prog['color'].value = (0.4, 0.5, 0)
-        self.prog['model'].write(Matrix44.from_eulers((0.4, 0.2, 0.0), dtype='f4'))
+        polyhedron = self.parent.current_polyhedron
+        self.prog['color'].value = (polyhedron.color1, polyhedron.color2, polyhedron.color3)
+        #(0.4, 0.5, 0)
+        #x = 0.4
+        x = self.parent.x_slider.value() / 20
+        y = self.parent.y_slider.value() / 20
+        z = self.parent.z_slider.value() / 20
+        self.prog['model'].write(Matrix44.from_eulers((x, y, z), dtype='f4'))
         #y_rotation = Quaternion.from_y_rotation(np.pi / 2.0)
         #self.prog['y_rotation'].value =
 
