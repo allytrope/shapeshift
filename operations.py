@@ -198,7 +198,13 @@ class Operations:
     def decompose(cls, polyhedron):
         """Separate a compound polyhedron into one of its parts. If not a compound, return original polyhedron."""
         print("Under development")
+        return polyhedron
 
+    @classmethod
+    def uncouple(cls, polyhedron):
+        """Separate compound polyhedra."""
+        print("Under development")
+        return polyhedron
         composititions = []
 
         connected_faces = []
