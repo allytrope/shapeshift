@@ -30,14 +30,11 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
         self.setWindowTitle("Shapeshift")
         self.setGeometry(100, 100, 830, 550)
-        #self.setStyleSheet("""
-        #background-color: #262626;
-        #color: #FFFFFF;
-        #""")
-
-        self.prior_polyhedra = []
-        self.set_current_polyhedron(polyhedra.Octahedron())
-        #self.current_polyhedron = polyhedra.Cube()
+        self.created_polyhedra = [polyhedra.Octahedron()]
+        self.setStyleSheet("""
+        background-color: #262626;
+        color: #FFFFFF;
+        """)
         
     def setupUI(self):
         """Set up layout of widgets."""
@@ -60,7 +57,7 @@ class MainWindow(QtWidgets.QMainWindow):
         view_menu.addAction(icosahedron_action := QtGui.QAction("Icosahedron", self))
 
         modify_menu = menubar.addMenu("Modify")
-        modify_menu.addAction(clear_prior_polyhedra_action := QtGui.QAction("Clear prior polyhedra", self))
+        modify_menu.addAction(clear_polyhedra_action := QtGui.QAction("Clear polyhedra", self))
 
         details_menu = menubar.addMenu("Details")
         details_menu.addAction(element_values_action := QtGui.QAction("Element values", self))
@@ -130,9 +127,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.hbox.addWidget(self.moderngl_and_sliders)
 
         # Add zoom slider
-        self.hbox.addWidget(zoom_slider := QtWidgets.QSlider())
-        zoom_slider.setValue(50)
+        self.zoom_slider = QtWidgets.QSlider()
+        self.hbox.addWidget(self.zoom_slider)
+        self.zoom_slider.setValue(10)
 
+        # Create list of created polyhedra
+        self.right_vbox = QtWidgets.QVBoxLayout()
+        self.right_widget = QtWidgets.QWidget()
+        self.right_widget.setLayout(self.right_vbox)
+        self.hbox.addWidget(self.right_widget)
+        
         # Create central widget
         self.central_widget = QtWidgets.QWidget()
         self.central_widget.setLayout(self.hbox)
@@ -155,7 +159,7 @@ class MainWindow(QtWidgets.QMainWindow):
         icosahedron_action.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.Icosahedron()))
         undo_action.triggered.connect(self.undo)
         redo_action.triggered.connect(self.redo)
-        clear_prior_polyhedra_action.triggered.connect(self.clear_prior_polyhedra)
+        clear_polyhedra_action.triggered.connect(self.clear_polyhedra)
         element_values_action.triggered.connect(self.element_values)
         element_counts_action.triggered.connect(self.element_count)
         face_types_action.triggered.connect(self.face_types)
@@ -164,40 +168,40 @@ class MainWindow(QtWidgets.QMainWindow):
         timer.timeout.connect(moderngl_widget.update)
         timer.start(30)        
 
-    def add_list_item(self, text):
-        if self.current_polyhedron:
-            item = QtWidgets.QListWidgetItem(text)
-            #self.listWidget.addItem(item)
+    #def add_list_item(self, text):
+    #    if self.current_polyhedron:
+    #        item = QtWidgets.QListWidgetItem(text)
+    #        #self.listWidget.addItem(item)
 
     def set_current_polyhedron(self, polyhedron):
         """Set current_polyhedron to a seed polyhedron."""
-        self.prior_polyhedra.append(polyhedron)
-        self.current_polyhedron = polyhedron
-        self.add_list_item(polyhedron.__class__.__name__.capitalize())
+        self.created_polyhedra.append(polyhedron)
+        #self.current_polyhedron = polyhedron
+        #self.add_list_item(polyhedron.__class__.__name__.capitalize())
 
     def operations(self, operation):
         """Perform a polyhedral operation on current_polyhedron."""
-        self.prior_polyhedra.append(self.current_polyhedron)
-        self.current_polyhedron = operation(self.current_polyhedron)
-        self.add_list_item(operation.__name__.capitalize())
+        current_polyhedron = operation(self.created_polyhedra[-1])
+        self.created_polyhedra.append(current_polyhedron)
+        #self.add_list_item(operation.__name__.capitalize())
 
-    def clear_prior_polyhedra(self):
-        self.prior_polyhedra.clear()
+    def clear_polyhedra(self):
+        self.created_polyhedra.clear()
 
     def element_values(self):
-        self.current_polyhedron.full_stats()
+        self.created_polyhedra[-1].full_stats()
 
     def element_count(self):
-        self.current_polyhedron.stats()
+        self.created_polyhedra[-1].stats()
 
     def face_types(self):
-        self.current_polyhedron.face_types()
+        self.created_polyhedra[-1].face_types()
 
     def undo(self):
-        if len(self.prior_polyhedra) == 0:
+        if len(self.created_polyhedra) == 0:
             print("No previous polyhedron")
         else:
-            self.current_polyhedron = self.prior_polyhedra.pop()
+            self.created_polyhedra.pop()
 
     def redo(self):
         print("No function yet")

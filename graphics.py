@@ -1,12 +1,9 @@
 """Generate OpenGL graphics for visualizing polyhedra."""
 
-# Standard library imports
-from math import cos, sin, pi
-
 # Third-party imports
 import moderngl
 import numpy as np
-from pyrr import Matrix44, Quaternion
+from pyrr import Matrix44, matrix44
 from PySide6 import QtGui, QtOpenGLWidgets
 
 
@@ -31,14 +28,16 @@ class ModernGLWidget(QtOpenGLWidgets.QOpenGLWidget):
     def paintGL(self):
         # Set up context and shaders
         self.ctx = moderngl.create_context()
+        self.ctx.clear(0.2, 0, 0.2, 0)
         self.prog = self.ctx.program(vertex_shader="""
             #version 330
-            uniform mat4 model;
+            uniform mat4 rotation;
+            uniform mat4 zoom;
             uniform vec3 color;
             in vec3 in_vert;
             out vec3 v_color;
             void main() {
-                gl_Position = model * vec4(in_vert, 1.0);
+                gl_Position = zoom * rotation * vec4(in_vert, 1.0);
                 v_color = color;
             }
             """,
@@ -50,10 +49,15 @@ class ModernGLWidget(QtOpenGLWidgets.QOpenGLWidget):
                 f_color = vec4(v_color, 1.0);
             }
         """)
+        #print(self.parent.created_polyhedra)
+        for polyhedron in self.parent.created_polyhedra:
+            self.draw_polyhedron(polyhedron)
 
+    def draw_polyhedron(self, polyhedron):
+        """Draw polyhedron."""
         # Create VAOs for each face
         vaos = []
-        for face in self.parent.current_polyhedron.faces:
+        for face in polyhedron.faces:
             positions = self.ctx.buffer(np.array([vertex.coordinates for vertex in face.vertices], dtype="f4").flatten())
 
             vao = self.ctx.vertex_array(
@@ -65,24 +69,14 @@ class ModernGLWidget(QtOpenGLWidgets.QOpenGLWidget):
             vaos.append(vao)
 
         # Set uniforms
-        polyhedron = self.parent.current_polyhedron
-        self.prog['color'].value = (polyhedron.color1, polyhedron.color2, polyhedron.color3)
-        #(0.4, 0.5, 0)
-        #x = 0.4
         x = self.parent.x_slider.value() / 20
         y = self.parent.y_slider.value() / 20
         z = self.parent.z_slider.value() / 20
-        self.prog['model'].write(Matrix44.from_eulers((x, y, z), dtype='f4'))
-        #y_rotation = Quaternion.from_y_rotation(np.pi / 2.0)
-        #self.prog['y_rotation'].value =
+        zoom = self.parent.zoom_slider.value() / 20
+        self.prog['color'].value = (polyhedron.color1, polyhedron.color2, polyhedron.color3)
+        self.prog["rotation"].write(Matrix44.from_eulers((x, y, z), dtype="f4"))
+        self.prog["zoom"].write(matrix44.create_from_scale([zoom, zoom, zoom], dtype="f4"))
 
-        # Clear and render
-        self.ctx.clear(0.2, 0, 0.2, 0)
-        self.ctx.enable(moderngl.DEPTH_TEST)
+        # Render
         for vao in vaos:
             vao.render(moderngl.LINE_LOOP)
-
-        #if self.checkBox.isChecked() == True:
-        #    for polyhedron in self.prior_polyhedra:
-        #        graphics.draw(polyhedron)
-        #graphics.rotate()
