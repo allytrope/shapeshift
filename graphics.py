@@ -33,6 +33,27 @@ class ModernGLWidget(QtOpenGLWidgets.QOpenGLWidget):
             #version 330
             uniform mat4 rotation;
             uniform mat4 zoom;
+            in vec3 color;
+            in vec3 in_vert;
+            out vec3 v_color;
+            void main() {
+                gl_Position = zoom * rotation * vec4(in_vert, 1.0);
+                v_color = color;
+            }
+            """,
+            fragment_shader="""
+            #version 330
+            in vec3 v_color;
+            out vec4 f_color;
+            void main() {
+                f_color = vec4(v_color, 1.0);
+            }"""
+        )
+
+        self.edges_prog = self.ctx.program(vertex_shader="""
+            #version 330
+            uniform mat4 rotation;
+            uniform mat4 zoom;
             uniform vec3 color;
             in vec3 in_vert;
             out vec3 v_color;
@@ -47,36 +68,82 @@ class ModernGLWidget(QtOpenGLWidgets.QOpenGLWidget):
             out vec4 f_color;
             void main() {
                 f_color = vec4(v_color, 1.0);
-            }
-        """)
-        #print(self.parent.created_polyhedra)
-        for polyhedron in self.parent.created_polyhedra:
-            self.draw_polyhedron(polyhedron)
+            }"""
+        )
+
+        if self.parent.show_edges_only.isChecked():
+            draw_func = self.draw_edges
+        else:
+            draw_func = self.draw_polyhedron
+
+        if self.parent.show_prior_polyhedra_checkbox.isChecked():
+            # Draw all created polyhedra
+            for polyhedron in self.parent.created_polyhedra:
+                draw_func(polyhedron)
+        else:
+            # Draw last created polyhedron
+            try:
+                draw_func(self.parent.created_polyhedra[-1])
+            # For when no created polyhedron exists
+            except IndexError:
+                pass
 
     def draw_polyhedron(self, polyhedron):
         """Draw polyhedron."""
         # Create VAOs for each face
         vaos = []
-        for face in polyhedron.faces:
+        for idx, face in enumerate(polyhedron.faces):
             positions = self.ctx.buffer(np.array([vertex.coordinates for vertex in face.vertices], dtype="f4").flatten())
+            color = self.ctx.buffer(np.array(np.tile(polyhedron.color[idx], len(face)).flatten(), dtype="f4"))
 
             vao = self.ctx.vertex_array(
                 self.prog,
                 [
-                    (positions, "3f", "in_vert")
+                    (positions, "3f", "in_vert"),
+                    (color, "3f", "color")
                 ]
             )
             vaos.append(vao)
-
+            
         # Set uniforms
         x = self.parent.x_slider.value() / 20
         y = self.parent.y_slider.value() / 20
         z = self.parent.z_slider.value() / 20
         zoom = self.parent.zoom_slider.value() / 20
-        self.prog['color'].value = (polyhedron.color1, polyhedron.color2, polyhedron.color3)
         self.prog["rotation"].write(Matrix44.from_eulers((x, y, z), dtype="f4"))
         self.prog["zoom"].write(matrix44.create_from_scale([zoom, zoom, zoom], dtype="f4"))
 
         # Render
+        self.ctx.enable(moderngl.DEPTH_TEST)
+        for vao in vaos:
+            vao.render(moderngl.TRIANGLE_FAN)
+
+    def draw_edges(self, polyhedron):
+        vaos = []
+        for face in polyhedron.faces:
+            positions = self.ctx.buffer(np.array([vertex.coordinates for vertex in face.vertices], dtype="f4").flatten())
+
+            vao = self.ctx.vertex_array(
+                self.edges_prog,
+                [
+                    (positions, "3f", "in_vert"),
+                ]
+            )
+            vaos.append(vao)
+            
+        # Set uniforms
+        x = self.parent.x_slider.value() / 20
+        y = self.parent.y_slider.value() / 20
+        z = self.parent.z_slider.value() / 20
+        zoom = self.parent.zoom_slider.value() / 20
+        self.edges_prog["color"].value = polyhedron.color[0]
+        self.edges_prog["rotation"].write(Matrix44.from_eulers((x, y, z), dtype="f4"))
+        self.edges_prog["zoom"].write(matrix44.create_from_scale([zoom, zoom, zoom], dtype="f4"))
+
+        # Render
+        self.ctx.enable(moderngl.DEPTH_TEST)
         for vao in vaos:
             vao.render(moderngl.LINE_LOOP)
+
+    def draw_faces(self):
+        pass

@@ -116,7 +116,8 @@ class Polyhedron:
             vertex._neighbours = neighbours
 
         # Determine color of the polyhedron
-        self.randomize_color()
+        self.color = [self.randomize_color() for face in faces]
+        #self.color = self.randomize_color()
 
     @cached_property
     def edges(self):
@@ -132,9 +133,9 @@ class Polyhedron:
 
     def randomize_color(self):
         """Change RGB color of polyhedron."""
-        self.color1 = randint(2,10)/10
-        self.color2 = randint(2,10)/10
-        self.color3 = randint(2,10)/10
+        return (randint(2,10)/10,
+                randint(2,10)/10,
+                randint(2,10)/10)
 
     def stats(self):
         """Print number of vertices, edges, and faces."""

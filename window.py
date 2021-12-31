@@ -91,19 +91,24 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Create tab widget
         self.tab_widget = QtWidgets.QTabWidget()
-        
         self.tab_widget.addTab(self.tab_1, "Truncate")
         self.tab_widget.addTab(self.tab_2, "Separate")
         self.tab_widget.addTab(self.tab_3, "Hypermutate")
 
         # Create descriptive text box
-        self.descriptive_textbox = QtWidgets.QLabel("This is a place to describe what an operation does.")
+        self.descriptive_textbox = QtWidgets.QLabel("")
         self.descriptive_textbox.setWordWrap(True)
+
+        # Polyhedra rendering options
+        self.show_edges_only = QtWidgets.QCheckBox("Show edges only", self)
+        self.show_prior_polyhedra_checkbox = QtWidgets.QCheckBox("Show prior polyhedra", self)
 
         # Create left vertical box
         self.left_vbox = QtWidgets.QVBoxLayout()
         self.left_vbox.addWidget(self.tab_widget)
         self.left_vbox.addWidget(self.descriptive_textbox)
+        self.left_vbox.addWidget(self.show_edges_only)
+        self.left_vbox.addWidget(self.show_prior_polyhedra_checkbox)
         self.left_widget = QtWidgets.QWidget()
         self.left_widget.setLayout(self.left_vbox)
         self.left_widget.setMaximumWidth(330)
