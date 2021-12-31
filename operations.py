@@ -1,13 +1,13 @@
 """Operations class and corresponding operations for transforming polyhedra."""
 
-# standard library imports
+# Standard library imports
 from itertools import cycle, islice
 
-# third-party imports
+# Third-party imports
 import numpy as np
-from sympy import Rational
+from sympy import Line, Point, Rational
 
-# local imports
+# Local imports
 from polyhedra import Polyhedron
 
 
@@ -31,13 +31,13 @@ class Operations:
         Takes a func to determine how base of pyramid is formed.
         Used in truncate(), rectify(), and facet().
         """
-        # create new faces (new faces derived from previous vertices)
+        # Create new faces (new faces derived from previous vertices)
         unordered_face = []
         for neighbour in vertex.neighbours:
             midpoint = func(vertex.coordinates, neighbour.coordinates)
             unordered_face.append((midpoint, neighbour))
 
-        # find edges by comparing endpoint faces
+        # Find edges by comparing endpoint faces
         edges = []
         for midpoint1, endpoint1 in unordered_face:
             for midpoint2, endpoint2 in unordered_face:
@@ -46,7 +46,7 @@ class Operations:
                         if end_face in endpoint2.faces:
                             edges.append((midpoint1, midpoint2))
 
-        # order vertices in face
+        # Order vertices in face
         face_vertices = [edges[0][0]]
         for _ in edges:
             for edge in edges:
@@ -54,7 +54,7 @@ class Operations:
                     face_vertices.append(edge[1])
                     break
         
-        # create new faces and vertices
+        # Create new faces and vertices
         new_face = []
         for vertex in face_vertices:
             index = new_vertices.index(vertex)
@@ -73,11 +73,11 @@ class Operations:
         new_vertices = []
         new_faces = []
 
-        # create truncated faces (new faces derived from previous faces)
+        # Create truncated faces (new faces derived from previous faces)
         for face in polyhedron.faces:
             new_face = []
 
-            # create new vertices and faces
+            # Create new vertices and faces
             for x in range(len(face.vertices)):
                 coordinates1 = face.vertices[x - 1].coordinates
                 coordinates2 = face.vertices[x].coordinates
@@ -90,7 +90,7 @@ class Operations:
 
             new_faces.append(new_face)
 
-        # create new faces (new faces derived from previous vertices)
+        # Create new faces (new faces derived from previous vertices)
         for vertex in polyhedron.vertices:
             new_face = cls.diminish(find_third, vertex, new_vertices)
             new_faces.append(new_face)
@@ -107,26 +107,26 @@ class Operations:
                     (vertex1[1] + vertex2[1])*Rational(1, 2),  # y coordinate
                     (vertex1[2] + vertex2[2])*Rational(1, 2))  # z coordinate
 
-        # arrays for new polyhedron's vertices, edges, and faces
+        # Arrays for new polyhedron's vertices, edges, and faces
         new_vertices = []
         new_faces = []
 
-        # create rectified faces (new faces derived from previous faces)
+        # Create rectified faces (new faces derived from previous faces)
         for face in polyhedron.faces:
             new_face = []
 
-            # find new vertices
+            # Find new vertices
             offset_cycle = islice(cycle(face.vertices), 1, None)
             for vertex, neighbour in zip(face.vertices, offset_cycle):
                 midpoint = find_midpoint(vertex.coordinates, neighbour.coordinates)
 
-                # test if midpoint is already in new_vertices, and if not, add it
+                # Test if midpoint is already in new_vertices, and if not, add it
                 cls.__add_to_list(midpoint, new_vertices, new_face)
 
             new_faces.append(new_face)
             
         
-        # create new faces (new faces derived from previous vertices)
+        # Create new faces (new faces derived from previous vertices)
         for vertex in polyhedron.vertices:
             new_face = cls.diminish(find_midpoint, vertex, new_vertices)
             new_faces.append(new_face)
@@ -144,7 +144,7 @@ class Operations:
         new_faces = []
         new_vertices = [vertex.coordinates for vertex in polyhedron.vertices]
         
-        # create new faces (new faces derived from previous vertices)
+        # Create new faces (new faces derived from previous vertices)
         for vertex in polyhedron.vertices:
             new_face = cls.diminish(keep_only_neighbour, vertex, new_vertices)
             new_faces.append(new_face)
@@ -162,13 +162,13 @@ class Operations:
         new_vertices = []
         new_faces = []
 
-        # create new vertices and faces
+        # Create new vertices and faces
         for vertex in polyhedron.vertices:
             new_face = []
             for face in vertex.faces:
                 centroid = find_centroid([vertex.coordinates for vertex in face.vertices])
 
-                # test if centroid is already in new_vertices, and if not, add it
+                # Test if centroid is already in new_vertices, and if not, add it
                 cls.__add_to_list(centroid, new_vertices, new_face)
 
             new_faces.append(new_face)
@@ -190,13 +190,47 @@ class Operations:
         return polyhedron
 
     @classmethod
-    def stellate(cls, polyhedron):
+    def stellate(cls, polyhedron, nth_stellation: int = 2):
+        """Extends edges until meeting other edges, creating new vertices and changing shape of faces.
+        The base polyhedron is designated as the first stellation, or nth_stellation=1."""
+        
         print("Under development")
-        return polyhedron
+
+        def find_midpoint(edge):
+            midpoint = ((edge[0][0] + edge[1][0])*Rational(1, 2),  # x coordinate
+                        (edge[0][1] + edge[1][1])*Rational(1, 2),  # y coordinate
+                        (edge[0][2] + edge[1][2])*Rational(1, 2))  # z coordinate
+            return midpoint
+        
+        # Edge needs to be of form [(1.0, 1.0, 1.0), (1.5, 2.0, 1.5)]
+        # Create lines from edges
+        lines = [Line(*edge) for edge in polyhedron.edges]
+        midpoints = [Point(find_midpoint(edge)) for edge in polyhedron.edges]
+
+        new_edges = []
+        for idx, line1 in enumerate(lines):
+            intersections = []
+            for line2 in lines:
+                if line1 != line2:
+                    intersection = line1.intersection(line2)
+                    if intersection:
+                        intersections.append(intersection[0])
+            distances = [intersection.distance(midpoints[idx]) for intersection in intersections]
+            print("Distances", distances)
+            try:
+                mins = sorted(list(set(distances)))
+                endpoints = []
+                for idx, distance in enumerate(distances):
+                    if distance == mins[nth_stellation]:
+                        endpoints.append(idx)
+                new_edges.append(tuple(endpoints))
+            except:
+                print("Stellation of order", nth_stellation, "does not exist.")
+                return polyhedron
 
     @classmethod
     def decompose(cls, polyhedron):
-        """Separate a compound polyhedron into one of its parts. If not a compound, return original polyhedron."""
+        """Slice polyhedron into two or more parts. If not decomposable, return self."""
         print("Under development")
         return polyhedron
 

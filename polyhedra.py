@@ -3,16 +3,16 @@ Polyhedron class, operational methods, and built-in seed polyhedra.
 Vertex and Face instances are contained within Polyhedron objects.
 """
 
-# standard library imports
-from ctypes import c_float
+# Standard library imports
 from functools import cached_property
 from itertools import cycle, islice
 import numpy as np
 from random import randint
 import weakref
 
-# third-party imports
+# Third-party imports
 import OpenGL.GL as GL
+from sympy import GoldenRatio as PHI
 
 
 class Vertex:
@@ -67,18 +67,19 @@ class Face:
 
     @cached_property
     def vertices(self):
+        """Return vertices in face."""
         return list(map(lambda index: self.polyhedron.vertices[index], self._vertices))
-
-    # return number of undirected edges
+ 
     @cached_property
     def edges(self):
+        """Return undirected edges."""
         forward = [(self.vertices[i - 1], self.vertices[i]) for i in range(len(self.vertices))]
         reverse = [(self.vertices[i], self.vertices[i - 1]) for i in range(len(self.vertices))]
         return forward + reverse
 
-    # return faces that share an edge with self
     @cached_property
     def neighbours(self):
+        """Return faces that share an edge with self."""
         neighbour_faces = []
         for face in self.polyhedron.faces:
             for edge in face.edges:
@@ -91,31 +92,43 @@ class Face:
 class Polyhedron:
     """Store polyhedron attributes and provide operational methods to transform polyhedra."""
     def __init__(self, vertices, faces):
-        # cast vertices to type Vertex
+        # Cast vertices to type Vertex
         if type(vertices[0]) != Vertex:
             self.vertices = list(map(lambda vertex: Vertex(vertex, polyhedron=self, idx=vertices.index(vertex)), vertices))
         else:
             self.vertices = vertices
 
-        # cast faces to type Face
+        # Cast faces to type Face
         if type(faces[0]) != Face:
             self.faces = list(map(lambda face: Face(face, polyhedron=self), faces))
         else:
             self.faces = faces
 
-        # create adjacency list for vertices using Descartes-Euler Polyhedron Formula
+        # Create adjacency list for vertices using Descartes-Euler Polyhedron Formula
         edges = [[] for i in range(len(vertices) + len(faces) - 2)]
         for face in self.faces:
             for x in range(len(face.vertices)):
                 edges[face._vertices[x - 1]].append(face._vertices[x])
                 edges[face._vertices[x]].append(face._vertices[x - 1])
 
-        # assign neighbours to each vertex
+        # Assign neighbours to each vertex
         for vertex, neighbours in zip(self.vertices, edges):
             vertex._neighbours = neighbours
 
-        # determine color of the polyhedron
+        # Determine color of the polyhedron
         self.randomize_color()
+
+    @cached_property
+    def edges(self):
+        """Return edges."""
+        edges = []
+        for face in self.faces:
+            offset_cycle = islice(cycle(face.vertices), 1, None)
+            for vertex, neighbour in zip(face.vertices, offset_cycle):
+                if [neighbour.coordinates, vertex.coordinates] not in edges:
+                    if [vertex.coordinates, neighbour.coordinates] not in edges:
+                        edges.append([vertex.coordinates, neighbour.coordinates])
+        return edges
 
     def randomize_color(self):
         """Change RGB color of polyhedron."""
@@ -151,7 +164,7 @@ class Polyhedron:
                 else:
                     print(f"{key}-gon: {value}")
 
-PHI = (1 + 5**0.5)/2
+#PHI = (1 + 5**0.5)/2
 
 class Tetrahedron(Polyhedron):
     def __init__(self):
