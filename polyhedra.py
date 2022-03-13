@@ -11,7 +11,6 @@ from random import randint
 import weakref
 
 # Third-party imports
-import OpenGL.GL as GL
 from sympy import GoldenRatio as PHI
 
 

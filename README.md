@@ -14,7 +14,7 @@ The following operations can be combined in different orders to create new and c
 Shapeshift displays these resulting polyhedra in 3D rotation and provides details on vertices, edges, and faces.
 
 ## Dependencies
-Shapeshift uses Python3 along with the following packages that can be installed through the Python package manager `pip`:
+Shapeshift uses Python3 along with the following packages:
 
 * `moderngl` for polyhedron visualization
 * `numpy` for numerical calculations
@@ -22,4 +22,12 @@ Shapeshift uses Python3 along with the following packages that can be installed 
 * `pyside6` for window and widgets
 * `sympy` for symbolic notation
 
-The program can then be run by executing `window.py` in a Python3 interpreter.
+The dependencies and their versions are stored in `requirements.txt`. These can be installed with the following code while in the highest-level package directory:
+```
+python3 -m pip install -r requirements.txt
+```
+
+The GUI itself can then be opened as follows:
+```
+python3 window.py
+```
