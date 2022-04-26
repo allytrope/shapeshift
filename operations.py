@@ -5,7 +5,7 @@ from itertools import cycle, islice
 
 # Third-party imports
 import numpy as np
-from sympy import Line, Point, Rational
+from sympy import Line, Line3D, Point, Point3D, Rational
 
 # Local imports
 from polyhedra import Polyhedron
@@ -98,14 +98,35 @@ class Operations:
         return Polyhedron(new_vertices, new_faces)
 
     @classmethod
-    def rectify(cls, polyhedron):
-        """Perform rectification operation. Cleave vertices by marking midpoints as new vertices."""
+    def rectify(cls, polyhedron, alt_method=None):
+        """Perform rectification operation. Default implementation uses point on edge's line closest to center to create new vertices.
+        This can be thought of as the intersection of the polyhedron's midsphere.
+        An alternate method (less generalized), cleaves vertices by marking midpoints of edges as new vertices.
+        This can be done by setting the parameter alt_method to "by_midpoint". However, for nonuniform polyhedra, this can result in nonplanar faces.
+        It is, however, faster."""
         print("Rectifying")
+
+        def find_midsphere_intersection(vertex1, vertex2):
+            """"Use sympy to find point that interests origin and perpendicular to the line of the edge."""
+            line = Line3D(Point3D(vertex1), Point3D(vertex2))
+            perpendicular_line = line.perpendicular_line(Point3D(0, 0, 0))
+            intersections = perpendicular_line.intersection(line)
+            #print(perpendicular_line)
+            return intersections[0].coordinates
 
         def find_midpoint(vertex1, vertex2):
             return ((vertex1[0] + vertex2[0])*Rational(1, 2),  # x coordinate
                     (vertex1[1] + vertex2[1])*Rational(1, 2),  # y coordinate
                     (vertex1[2] + vertex2[2])*Rational(1, 2))  # z coordinate
+
+        # Decide on method of rectification
+        if alt_method == None:
+            create_new_vertices = find_midsphere_intersection
+        elif alt_method == "by_midpoint":
+            create_new_vertices = find_midpoint
+        else:
+            print("Not a valid option for parameter alt_method.")
+        
 
         # Arrays for new polyhedron's vertices, edges, and faces
         new_vertices = []
@@ -118,7 +139,7 @@ class Operations:
             # Find new vertices
             offset_cycle = islice(cycle(face.vertices), 1, None)
             for vertex, neighbour in zip(face.vertices, offset_cycle):
-                midpoint = find_midpoint(vertex.coordinates, neighbour.coordinates)
+                midpoint = create_new_vertices(vertex.coordinates, neighbour.coordinates)
 
                 # Test if midpoint is already in new_vertices, and if not, add it
                 cls.__add_to_list(midpoint, new_vertices, new_face)
@@ -128,7 +149,7 @@ class Operations:
         
         # Create new faces (new faces derived from previous vertices)
         for vertex in polyhedron.vertices:
-            new_face = cls.diminish(find_midpoint, vertex, new_vertices)
+            new_face = cls.diminish(create_new_vertices, vertex, new_vertices)
             new_faces.append(new_face)
 
         return Polyhedron(new_vertices, new_faces)
