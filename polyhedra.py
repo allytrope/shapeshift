@@ -6,12 +6,13 @@ Vertex and Face instances are contained within Polyhedron objects.
 # Standard library imports
 from functools import cached_property
 from itertools import cycle, islice
-import numpy as np
+from math import isclose
 from random import randint
 import weakref
 
 # Third-party imports
-from sympy import GoldenRatio as PHI
+import numpy as np
+from sympy import GoldenRatio as PHI, Line3D, Point3D
 
 
 class Vertex:
@@ -164,7 +165,23 @@ class Polyhedron:
                 else:
                     print(f"{key}-gon: {value}")
 
-#PHI = (1 + 5**0.5)/2
+    def is_canonical(self):
+        """Return whether Polyhedron has midsphere. That is to say whether all edges form lines tangent to the same sphere."""
+        midradius = None
+        for edge in self.edges:
+            vertex1 = edge[0]
+            vertex2 = edge[1]
+            line = Line3D(Point3D(vertex1), Point3D(vertex2))
+            distance = line.distance(Point3D(0, 0, 0))
+            #print(float(distance))
+            if midradius is None:
+                midradius = distance
+            elif not isclose(float(midradius), float(distance)):
+                return False
+        return True
+
+
+PHI = (1 + 5**0.5)/2
 
 class Tetrahedron(Polyhedron):
     def __init__(self):

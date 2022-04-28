@@ -98,21 +98,22 @@ class Operations:
         return Polyhedron(new_vertices, new_faces)
 
     @classmethod
-    def rectify(cls, polyhedron, alt_method=None):
-        """Perform rectification operation. Default implementation uses point on edge's line closest to center to create new vertices.
-        This can be thought of as the intersection of the polyhedron's midsphere.
-        An alternate method (less generalized), cleaves vertices by marking midpoints of edges as new vertices.
-        This can be done by setting the parameter alt_method to "by_midpoint". However, for nonuniform polyhedra, this can result in nonplanar faces.
-        It is, however, faster."""
+    def rectify(cls, polyhedron, method="by_midsphere"):
+        """Perform rectification operation. This diminishes the polyhedron at vertices such edges are converted into new vertices.
+        The default implementation uses the intersections of the edges to the polyhedron's midsphere to place new vertices.
+        And thus, this only works on polyhedra that have a midsphere.
+
+        An alternate method can be used by setting the parameter method to "by_midpoint".
+        This method doesn't require a midsphere and instead cleaves vertices by marking midpoints of edges as new vertices.
+        For uniform polyhedra, this produces the same results as the midsphere method; however, for nonuniform polyhedra,
+        this can result in nonplanar faces."""
         print("Rectifying")
 
         def find_midsphere_intersection(vertex1, vertex2):
-            """"Use sympy to find point that interests origin and perpendicular to the line of the edge."""
+            """"Use sympy to find point on line closest to origin."""
             line = Line3D(Point3D(vertex1), Point3D(vertex2))
-            perpendicular_line = line.perpendicular_line(Point3D(0, 0, 0))
-            intersections = perpendicular_line.intersection(line)
-            #print(perpendicular_line)
-            return intersections[0].coordinates
+            point = line.projection(Point3D(0, 0, 0))
+            return point.coordinates
 
         def find_midpoint(vertex1, vertex2):
             return ((vertex1[0] + vertex2[0])*Rational(1, 2),  # x coordinate
@@ -120,9 +121,12 @@ class Operations:
                     (vertex1[2] + vertex2[2])*Rational(1, 2))  # z coordinate
 
         # Decide on method of rectification
-        if alt_method == None:
+        if method == "by_midsphere":
+            if not polyhedron.is_canonical():
+                print("Polyhedron is not canonical; must have a midsphere to rectify.")
+                return polyhedron
             create_new_vertices = find_midsphere_intersection
-        elif alt_method == "by_midpoint":
+        elif method == "by_midpoint":
             create_new_vertices = find_midpoint
         else:
             print("Not a valid option for parameter alt_method.")
