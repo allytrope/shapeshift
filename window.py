@@ -9,9 +9,10 @@ import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
 
 # Local imports
+import figures
 from graphics import ModernGLWidget
 from operations import Operations
-import polyhedra
+from polytope import Polyhedron
 
 
 class AxisSlider(QtWidgets.QSlider):
@@ -30,7 +31,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
         self.setWindowTitle("Shapeshift")
         self.setGeometry(100, 100, 830, 550)
-        self.polytope_models = [Model(polyhedra.octahedron)]
+        self.polytope_models = [Model(figures.octahedron)]
         self.setStyleSheet("""
         background-color: #262626;
         color: #FFFFFF;
@@ -152,20 +153,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.central_widget)
 
         # Connect operations to buttons/actions
-        truncate.clicked.connect(lambda: self.operations(Operations.truncate))
-        rectify.clicked.connect(lambda: self.operations(Operations.rectify))
-        facet.clicked.connect(lambda: self.operations(Operations.facet))
-        dual.clicked.connect(lambda: self.operations(Operations.reciprocate))
-        cap.clicked.connect(lambda: self.operations(Operations.cap))
-        bridge.clicked.connect(lambda: self.operations(Operations.bridge))
-        stellate.clicked.connect(lambda: self.operations(Operations.stellate))
-        decompose.clicked.connect(lambda: self.operations(Operations.decompose))
-        uncouple.clicked.connect(lambda: self.operations(Operations.uncouple))
-        tetrahedron_action.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.tetrahedron))
-        cube_action.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.cube))
-        octahedron_action.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.octahedron))
-        dodecahedron_action.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.dodecahedron))
-        icosahedron_action.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.icosahedron))
+        truncate.clicked.connect(lambda: self.operations(Polyhedron.truncate))
+        rectify.clicked.connect(lambda: self.operations(Polyhedron.rectify))
+        facet.clicked.connect(lambda: self.operations(Polyhedron.facet))
+        dual.clicked.connect(lambda: self.operations(Polyhedron.reciprocate))
+        cap.clicked.connect(lambda: self.operations(Polyhedron.cap))
+        bridge.clicked.connect(lambda: self.operations(Polyhedron.bridge))
+        stellate.clicked.connect(lambda: self.operations(Polyhedron.stellate))
+        decompose.clicked.connect(lambda: self.operations(Polyhedron.decompose))
+        uncouple.clicked.connect(lambda: self.operations(Polyhedron.uncouple))
+        tetrahedron_action.triggered.connect(lambda: self.set_current_polyhedron(figures.tetrahedron))
+        cube_action.triggered.connect(lambda: self.set_current_polyhedron(figures.cube))
+        octahedron_action.triggered.connect(lambda: self.set_current_polyhedron(figures.octahedron))
+        dodecahedron_action.triggered.connect(lambda: self.set_current_polyhedron(figures.dodecahedron))
+        icosahedron_action.triggered.connect(lambda: self.set_current_polyhedron(figures.icosahedron))
         undo_action.triggered.connect(self.undo)
         redo_action.triggered.connect(self.redo)
         clear_polyhedra_action.triggered.connect(self.clear_polyhedra)
