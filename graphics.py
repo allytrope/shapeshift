@@ -78,23 +78,23 @@ class ModernGLWidget(QtOpenGLWidgets.QOpenGLWidget):
 
         if self.parent.show_prior_polyhedra_checkbox.isChecked():
             # Draw all created polyhedra
-            for polyhedron in self.parent.created_polyhedra:
-                draw_func(polyhedron)
+            for model in self.parent.polytope_models:
+                draw_func(model)
         else:
             # Draw last created polyhedron
             try:
-                draw_func(self.parent.created_polyhedra[-1])
+                draw_func(self.parent.polytope_models[-1])
             # For when no created polyhedron exists
             except IndexError:
                 pass
 
-    def draw_polyhedron(self, polyhedron):
+    def draw_polyhedron(self, model):
         """Draw polyhedron."""
         # Create VAOs for each face
         vaos = []
-        for idx, face in enumerate(polyhedron.faces):
+        for idx, face in enumerate(model.polytope.faces):
             positions = self.ctx.buffer(np.array([vertex.coordinates for vertex in face.vertices], dtype="f4").flatten())
-            color = self.ctx.buffer(np.array(np.tile(polyhedron.color[idx], len(face)).flatten(), dtype="f4"))
+            color = self.ctx.buffer(np.array(np.tile(model.color[idx], len(face)).flatten(), dtype="f4"))
 
             vao = self.ctx.vertex_array(
                 self.prog,
@@ -118,9 +118,9 @@ class ModernGLWidget(QtOpenGLWidgets.QOpenGLWidget):
         for vao in vaos:
             vao.render(moderngl.TRIANGLE_FAN)
 
-    def draw_edges(self, polyhedron):
+    def draw_edges(self, model):
         vaos = []
-        for face in polyhedron.faces:
+        for face in model.polytope.faces:
             positions = self.ctx.buffer(np.array([vertex.coordinates for vertex in face.vertices], dtype="f4").flatten())
 
             vao = self.ctx.vertex_array(
@@ -136,7 +136,7 @@ class ModernGLWidget(QtOpenGLWidgets.QOpenGLWidget):
         y = self.parent.y_slider.value() / 20
         z = self.parent.z_slider.value() / 20
         zoom = self.parent.zoom_slider.value() / 20
-        self.edges_prog["color"].value = polyhedron.color[0]
+        self.edges_prog["color"].value = model.color[0]
         self.edges_prog["rotation"].write(Matrix44.from_eulers((x, y, z), dtype="f4"))
         self.edges_prog["zoom"].write(matrix44.create_from_scale([zoom, zoom, zoom], dtype="f4"))
 
@@ -147,3 +147,5 @@ class ModernGLWidget(QtOpenGLWidgets.QOpenGLWidget):
 
     def draw_faces(self):
         pass
+
+

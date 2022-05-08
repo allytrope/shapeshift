@@ -2,13 +2,14 @@
 
 # Standard library imports
 from itertools import cycle, islice
+from venv import create
 
 # Third-party imports
 import numpy as np
 from sympy import Line, Line3D, Point, Point3D, Rational
 
 # Local imports
-from polyhedra import Polyhedron
+from polyhedra import create_polytope, Polyhedron
 
 
 class Operations:
@@ -95,7 +96,7 @@ class Operations:
             new_face = cls.diminish(find_third, vertex, new_vertices)
             new_faces.append(new_face)
 
-        return Polyhedron(new_vertices, new_faces)
+        return create_polytope(new_vertices, new_faces)
 
     @classmethod
     def rectify(cls, polyhedron, method="by_midsphere"):
@@ -156,7 +157,7 @@ class Operations:
             new_face = cls.diminish(create_new_vertices, vertex, new_vertices)
             new_faces.append(new_face)
 
-        return Polyhedron(new_vertices, new_faces)
+        return create_polytope(new_vertices, new_faces)
 
     @classmethod
     def facet(cls, polyhedron):
@@ -174,7 +175,7 @@ class Operations:
             new_face = cls.diminish(keep_only_neighbour, vertex, new_vertices)
             new_faces.append(new_face)
 
-        return Polyhedron(new_vertices, new_faces)
+        return create_polytope(new_vertices, new_faces)
 
     @classmethod
     def reciprocate(cls, polyhedron):
@@ -197,7 +198,7 @@ class Operations:
                 cls.__add_to_list(centroid, new_vertices, new_face)
 
             new_faces.append(new_face)
-        return Polyhedron(new_vertices, new_faces)
+        return create_polytope(new_vertices, new_faces)
 
     @staticmethod
     def augment(func, face, new_vertices):

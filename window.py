@@ -30,11 +30,15 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
         self.setWindowTitle("Shapeshift")
         self.setGeometry(100, 100, 830, 550)
-        self.created_polyhedra = [polyhedra.Octahedron()]
+        self.polytope_models = [Model(polyhedra.octahedron)]
         self.setStyleSheet("""
         background-color: #262626;
         color: #FFFFFF;
         """)
+
+    @property
+    def polytope(self):
+        return self.polytope_models[-1].polytope
         
     def setupUI(self):
         """Set up layout of widgets."""
@@ -157,11 +161,11 @@ class MainWindow(QtWidgets.QMainWindow):
         stellate.clicked.connect(lambda: self.operations(Operations.stellate))
         decompose.clicked.connect(lambda: self.operations(Operations.decompose))
         uncouple.clicked.connect(lambda: self.operations(Operations.uncouple))
-        tetrahedron_action.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.Tetrahedron()))
-        cube_action.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.Cube()))
-        octahedron_action.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.Octahedron()))
-        dodecahedron_action.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.Dodecahedron()))
-        icosahedron_action.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.Icosahedron()))
+        tetrahedron_action.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.tetrahedron))
+        cube_action.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.cube))
+        octahedron_action.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.octahedron))
+        dodecahedron_action.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.dodecahedron))
+        icosahedron_action.triggered.connect(lambda: self.set_current_polyhedron(polyhedra.icosahedron))
         undo_action.triggered.connect(self.undo)
         redo_action.triggered.connect(self.redo)
         clear_polyhedra_action.triggered.connect(self.clear_polyhedra)
@@ -180,36 +184,48 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def set_current_polyhedron(self, polyhedron):
         """Set current_polyhedron to a seed polyhedron."""
-        self.created_polyhedra.append(polyhedron)
+        self.polytope_models.append(Model(polyhedron))
         #self.current_polyhedron = polyhedron
         #self.add_list_item(polyhedron.__class__.__name__.capitalize())
 
     def operations(self, operation):
         """Perform a polyhedral operation on current_polyhedron."""
-        current_polyhedron = operation(self.created_polyhedra[-1])
-        self.created_polyhedra.append(current_polyhedron)
+        current_polyhedron = operation(self.polytope)
+        self.polytope_models.append(Model(current_polyhedron))
         #self.add_list_item(operation.__name__.capitalize())
 
     def clear_polyhedra(self):
-        self.created_polyhedra.clear()
+        self.polytope_models.clear()
 
     def element_values(self):
-        self.created_polyhedra[-1].full_stats()
+        self.polytope.full_stats()
 
     def element_count(self):
-        self.created_polyhedra[-1].stats()
+        self.polytope.stats()
 
     def face_types(self):
-        self.created_polyhedra[-1].face_types()
+        self.polytope.face_types()
 
     def undo(self):
-        if len(self.created_polyhedra) == 0:
+        if len(self.polytope_models) == 0:
             print("No previous polyhedron")
         else:
-            self.created_polyhedra.pop()
+            self.polytope_models.pop()
 
     def redo(self):
         print("No function yet")
+
+class Model:
+    def __init__(self, polytope):
+        # Determine color of the polyhedron
+        self.polytope = polytope
+        self.color = [self.randomize_color() for face in self.polytope.faces]
+
+    def randomize_color(self):
+        """Change RGB color of polyhedron."""
+        return (random.randint(2,10)/10,
+                random.randint(2,10)/10,
+                random.randint(2,10)/10)
 
 
 app = QtWidgets.QApplication(sys.argv)
