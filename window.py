@@ -5,13 +5,11 @@ import random
 import sys
 
 # Third-party imports
-import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
 
 # Local imports
 import figures
 from graphics import ModernGLWidget
-from operations import Operations
 from polytope import Polyhedron
 
 

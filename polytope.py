@@ -12,7 +12,8 @@ import weakref
 
 # Third-party imports
 import numpy as np
-from sympy import GoldenRatio as PHI, Line, Line3D, Point, Point3D, Rational
+import sympy
+from sympy import Rational
 
 # Local imports
 #from exceptions import SubfaceError
@@ -47,84 +48,107 @@ class Polytope:
         """Index by subfaces."""
         return self.subfaces[idx]
 
+    def __len__(self):
+        """Return count of subfaces."""
+        return len(self.subfaces)
+
     @property
     def rank(self) -> int:
         """The dimension of self."""
         if self.subfaces == []:
             return 0
         else:
-            print(self.subfaces)
-            return list(self.subfaces)[0].rank + 1
+            return next(iter(self.subfaces)).rank + 1
 
     @property
-    def parents(self) -> Set[Polytope]:
+    def parents(self) -> List[Polytope]:
         """Alias for superfaces; that is, (n+1)-faces that contain self."""
         return self.superfaces
 
     @cached_property
-    def siblings(self) -> Set[Polytope]:
+    def siblings(self) -> List[Polytope]:
         """Return n-faces that share an (n+1)-face with self."""
         neighbours = set()
         for superface in self.superfaces:
             neighbours = neighbours.union(superface.subfaces)
         neighbours.remove(self)
-        return neighbours
+        return list(neighbours)
 
     @cached_property
-    def neighbours(self) -> Set[Polytope]:
+    def neighbours(self) -> List[Polytope]:
         """Return n-faces that share an (n-1)-face with self."""
         neighbours = set()
         for subface in self.subfaces:
             neighbours = neighbours.union(subface.superfaces)
         neighbours.remove(self)
-        return neighbours
+        return list(neighbours)
 
     @property
-    def children(self) -> Set[Polytope]:
+    def children(self) -> List[Polytope]:
         """Alias for subfaces; that is, (n-1)-faces that self contains."""
         return self.subfaces
 
-    # @property
-    # def facets(self) -> List[Polytope]:
-    #     """(n-1)-faces."""
-    #     return self.subfaces
+    @property
+    def facets(self) -> List[Polytope]:
+        """(n-1)-faces."""
+        return self.subfaces
 
-    # @property
-    # def ridges(self) -> List[Polytope]:
-    #     """(n-2)-faces."""
-    #     return self.nfaces(-2)
+    @property
+    def ridges(self) -> List[Polytope]:
+        """(n-2)-faces."""
+        return self.nfaces(self.rank - 2)
 
-    # @property
-    # def peaks(self) -> List[Polytope]:
-    #     """(n-3)-faces."""
-    #     return self.nfaces(-3)
+    @property
+    def peaks(self) -> List[Polytope]:
+        """(n-3)-faces."""
+        return self.nfaces(self.rank - 3)
 
-    def nfaces(self, rank) -> Set[Polytope]:
-        """n-faces."""
+    def nfaces(self, rank) -> List[Polytope]:
+        """Return n-faces, where n is the "rank" argument, that are within self or that self is within."""
+        if rank > self.rank:
+            faces = self.superfaces
+            superfaces = set()
+            while True:
+                if next(iter(faces)).rank == rank:
+                    return list(faces)
+                for superface in faces:
+                    superfaces = superfaces.union(superface.superfaces)
+                faces = superfaces
+                superfaces = set()
+        elif rank == self.rank:
+            return self
+        else:
+            faces = self.subfaces
+            subfaces = set()
+            while True:
+                if next(iter(faces)).rank == rank:
+                    return list(faces)
+                for subface in faces:
+                    subfaces = subfaces.union(subface.subfaces)
+                faces = subfaces
+                subfaces = set()
 
-        return self.elements[rank]
+    @property
+    def cells(self) -> List[Polytope]:
+        """3-faces."""
+        return self.nfaces(3)
 
-    # @property
-    # def cells(self) -> List[Polytope]:
-    #     """3-faces."""
-    #     return self.nfaces(3)
+    @property
+    def faces(self) -> List[Polygon]:
+        """2-faces."""
+        return self.nfaces(2)
 
-    # @property
-    # def faces(self) -> List[Polygon]:
-    #     """2-faces."""
-    #     return self.nfaces(2)
+    @property
+    def edges(self) -> List[LineSegment]:
+        """1-faces."""
+        return self.nfaces(1)
 
-    # @property
-    # def edges(self) -> List[LineSegment]:
-    #     """1-faces."""
-    #     return self.nfaces(1)
-
-    # @property
-    # def vertices(self) -> Set[Point]:
-    #     """0-faces."""
-    #     if list(self.subfaces)[0] == []:
-    #         return self.subfaces
-    #     return self.nfaces(0)
+    @property
+    def vertices(self) -> List[Point]:
+        """0-faces."""
+        if next(iter(self.subfaces)) == []:
+            return self.subfaces
+        return self.nfaces(0)
 
     @property
     def ambient_dimension(self) -> int:
@@ -143,42 +167,21 @@ class Polytope:
         return Point(centroid)
 
     def stats(self) -> None:
-        """Print number of vertices, edges, and faces."""
+        """Print number of vertices, edges, faces, etc."""
         nfaces = ["Vertices", "Edges", "Faces", "Cells"]
-
-        print("Vertices:", len(self.vertices))
-        print("Edges:", sum([len(face.vertices) for face in self.faces])//2)
-        print("Faces:", len(self.faces))
+        for rank in range(0, self.rank):
+            if rank <= 3:
+                nface = nfaces[rank]
+            else:
+                nface = f"{rank}-face"
+            count = len(self.nfaces(rank))
+            print(f"{nface}: {count}")
     
 
 class Polyhedron(Polytope):
     """The 3-polytope."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-    @property
-    def faces(self):
-        return set(self.subfaces)
-
-    @property
-    def edges(self):
-        edges = set()
-        for face in self.faces:
-            edges = edges.union(face.subfaces)
-        return edges
-
-    @property
-    def vertices(self):
-        vertices = set()
-        for edge in self.edges:
-            vertices = vertices.union(edge.subfaces)
-        return vertices
-
-    def full_stats(self) -> None:
-        """Print array representations of vertices, edges, and faces."""
-        print("Vertices:\n", [vertex.coordinates for vertex in self.vertices])
-        #print("Edges:\n", self.edges)
-        print("Faces by vertex:\n", [[vertex.idx for vertex in face.vertices] for face in self.faces])
 
     def face_types(self) -> None:
         """Print counts of each n-gon."""
@@ -202,8 +205,8 @@ class Polyhedron(Polytope):
         for edge in self.edges:
             vertex1 = list(edge.vertices)[0]
             vertex2 = list(edge.vertices)[1]
-            line = Line3D(Point3D(vertex1.coordinates), Point3D(vertex2.coordinates))
-            distance = line.distance(Point3D(0, 0, 0))
+            line = sympy.Line3D(sympy.Point3D(vertex1.coordinates), sympy.Point3D(vertex2.coordinates))
+            distance = line.distance(sympy.Point3D(0, 0, 0))
             if midradius is None:
                 midradius = distance
             elif not isclose(float(midradius), float(distance)):
@@ -231,7 +234,7 @@ class Polyhedron(Polytope):
         # Create new faces (new faces derived from previous vertices)
         unordered_face = []
         for neighbour in vertex.neighbours:
-            midpoint = func(vertex.coordinates, neighbour.coordinates)
+            midpoint = func(LineSegment([Point(vertex.coordinates), Point(neighbour.coordinates)]))
             unordered_face.append((midpoint, neighbour))
 
         # Find edges by comparing endpoint faces
@@ -261,10 +264,6 @@ class Polyhedron(Polytope):
     def truncate(self):
         """Perform truncation operation. Cleave vertices by marking 1/3rd and 2/3rds of each edge as new vertices."""
         print("Truncating")
-        def find_third(vertex1, vertex2):
-            return ((vertex1[0]*Rational(2, 3) + vertex2[0]*Rational(1, 3)),  # x coordinate
-                    (vertex1[1]*Rational(2, 3) + vertex2[1]*Rational(1, 3)),  # y coordinate
-                    (vertex1[2]*Rational(2, 3) + vertex2[2]*Rational(1, 3)))  # z coordinate
 
         new_vertices = []
         new_faces = []
@@ -278,8 +277,8 @@ class Polyhedron(Polytope):
                 coordinates1 = face.vertices[x - 1].coordinates
                 coordinates2 = face.vertices[x].coordinates
 
-                third_forward = find_third(coordinates1, coordinates2)
-                third_backward = find_third(coordinates2, coordinates1)
+                third_forward = LineSegment([Point(coordinates1), Point(coordinates2)]).find_third()
+                third_backward = LineSegment([Point(coordinates2), Point(coordinates1)]).find_third()
 
                 self.__add_to_list(third_forward, new_vertices, new_face)
                 self.__add_to_list(third_backward, new_vertices, new_face)
@@ -288,7 +287,7 @@ class Polyhedron(Polytope):
 
         # Create new faces (new faces derived from previous vertices)
         for vertex in self.vertices:
-            new_face = self.diminish(find_third, vertex, new_vertices)
+            new_face = self.diminish(LineSegment.find_third, vertex, new_vertices)
             new_faces.append(new_face)
 
         return create_polytope(new_vertices, new_faces)
@@ -304,25 +303,14 @@ class Polyhedron(Polytope):
         this can result in nonplanar faces."""
         print("Rectifying")
 
-        def find_midsphere_intersection(vertex1, vertex2):
-            """"Use sympy to find point on line closest to origin."""
-            line = Line3D(Point3D(vertex1), Point3D(vertex2))
-            point = line.projection(Point3D(0, 0, 0))
-            return point.coordinates
-
-        def find_midpoint(vertex1, vertex2):
-            return ((vertex1[0] + vertex2[0])*Rational(1, 2),  # x coordinate
-                    (vertex1[1] + vertex2[1])*Rational(1, 2),  # y coordinate
-                    (vertex1[2] + vertex2[2])*Rational(1, 2))  # z coordinate
-
         # Decide on method of rectification
         if method == "by_midsphere":
             if not self.is_canonical():
                 print("Polyhedron is not canonical; must have a midsphere to rectify.")
                 return self
-            create_new_vertices = find_midsphere_intersection
+            create_new_vertices = LineSegment.find_midsphere_intersection
         elif method == "by_midpoint":
-            create_new_vertices = find_midpoint
+            create_new_vertices = LineSegment.find_midpoint
         else:
             print("Not a valid option for parameter alt_method.")
         
@@ -338,7 +326,7 @@ class Polyhedron(Polytope):
             # Find new vertices
             offset_cycle = islice(cycle(face.vertices), 1, None)
             for vertex, neighbour in zip(face.vertices, offset_cycle):
-                midpoint = create_new_vertices(vertex.coordinates, neighbour.coordinates)
+                midpoint = create_new_vertices(LineSegment([Point(vertex.coordinates), Point(neighbour.coordinates)]))
 
                 # Test if midpoint is already in new_vertices, and if not, add it
                 self.__add_to_list(midpoint, new_vertices, new_face)
@@ -408,19 +396,12 @@ class Polyhedron(Polytope):
     def stellate(self, nth_stellation: int = 2):
         """Extends edges until meeting other edges, creating new vertices and changing shape of faces.
         The base polyhedron is designated as the first stellation, or nth_stellation=1."""
-        
         print("Under development")
-
-        def find_midpoint(edge):
-            midpoint = ((edge[0][0] + edge[1][0])*Rational(1, 2),  # x coordinate
-                        (edge[0][1] + edge[1][1])*Rational(1, 2),  # y coordinate
-                        (edge[0][2] + edge[1][2])*Rational(1, 2))  # z coordinate
-            return midpoint
         
         # Edge needs to be of form [(1.0, 1.0, 1.0), (1.5, 2.0, 1.5)]
         # Create lines from edges
-        lines = [Line(*edge) for edge in self.edges]
-        midpoints = [Point(find_midpoint(edge)) for edge in self.edges]
+        lines = [sympy.Line(*edge) for edge in self.edges]
+        midpoints = [Point(edge.midpoint) for edge in self.edges]
 
         new_edges = []
         for idx, line1 in enumerate(lines):
@@ -489,20 +470,6 @@ class Polygon(Polytope):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def __len__(self):
-        return len(self.edges)
-
-    @property
-    def edges(self):
-        return set(self.children)
-
-    @property
-    def vertices2(self):
-        vertices = set()
-        for edge in self.edges:
-            vertices = vertices.union(edge.subfaces)
-        return vertices
-    
     @cached_property
     def vertices(self):
         """Return ordered vertices."""
@@ -531,17 +498,20 @@ class LineSegment(Polytope):
         super().__init__(*args, **kwargs)
 
     @property
-    def faces(self):
-        return self.superfaces
-
-    @property
-    def vertices(self):
-        return self.children
-
-    @property
     def midpoint(self):
         """Alias for centroid."""
         return self.centroid
+
+    def find_third(self):
+        return ((self[0][0]*Rational(2, 3) + self[1][0]*Rational(1, 3)),  # x coordinate
+                (self[0][1]*Rational(2, 3) + self[1][1]*Rational(1, 3)),  # y coordinate
+                (self[0][2]*Rational(2, 3) + self[1][2]*Rational(1, 3)))  # z coordinate
+
+    def find_midsphere_intersection(self):
+        """"Use sympy to find point on line closest to origin."""
+        line = sympy.Line3D(sympy.Point3D(self[0].coords), sympy.Point3D(self[1].coords))
+        point = line.projection(sympy.Point3D(0, 0, 0))
+        return point.coordinates
 
 
 class Point(Polytope):
@@ -558,7 +528,7 @@ class Point(Polytope):
     #     return hash(self.coords)
 
     def __str__(self):
-        return str(self.coordinates)
+        return "Point: " + str(self.coordinates)
 
     def __len__(self):
         return len(self.coordinates)
@@ -574,7 +544,7 @@ class Point(Polytope):
         pass
 
     @cached_property
-    def neighbours(self) -> Set[Point]:
+    def neighbours(self) -> List[Point]:
         """Overide class Polytope implementation. Because vertices can't share a subface (for not having any),
         the closest idea of neighbours are those that share an edge.
         This usage of the term "neighbours" is used in graph theory and so applied here."""
@@ -593,17 +563,6 @@ class Point(Polytope):
     @property
     def ambient_dimension(self):
         return len(self.position)
-
-    @property
-    def faces(self):
-        faces = set()
-        for edge in self.edges:
-            faces = faces.union(edge.superfaces)
-        return faces
-
-    @property
-    def edges(self):
-        return self.superfaces
 
 
 def create_polytope(*elements, with_edges=False) -> Polytope:
