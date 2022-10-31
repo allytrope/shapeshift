@@ -6,6 +6,7 @@ import sys
 
 # Third-party imports
 from PySide6 import QtCore, QtGui, QtWidgets
+from sympy import Rational
 
 # Local imports
 import figures
@@ -14,14 +15,30 @@ from polytope import Polyhedron
 
 
 class AxisSlider(QtWidgets.QSlider):
+    """Slider for rotation in a specific xyz dimension."""
     def __init__(self):
         super().__init__(QtCore.Qt.Horizontal)
         self.setValue(random.randint(0, 100))
 
 
+class FractionSlider(QtWidgets.QSlider):
+    """Slider for determining at what fraction each edge is truncated."""
+    def __init__(self):
+        super().__init__(QtCore.Qt.Horizontal)
+        self.setValue(4)
+        self.setMinimum(1)
+        self.setMaximum(6)
+
+    def get_value(self):
+        """Return value as a fraction."""
+        return Rational(self.value(), 6)
+
+
 class OperationButton(QtWidgets.QPushButton):
+    """Buttons for performing operations on polytopes."""
     def __init__(self, name):
         super().__init__(name)
+        self.setGeometry(200, 150, 100, 40)
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -30,10 +47,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("Shapeshift")
         self.setGeometry(100, 100, 830, 550)
         self.polytope_models = [Model(figures.octahedron)]
-        self.setStyleSheet("""
-        background-color: #262626;
-        color: #FFFFFF;
-        """)
+        # self.setStyleSheet("""
+        # background-color: #262626;
+        # color: #FFFFFF;
+        # """)
 
     @property
     def polytope(self):
@@ -72,31 +89,46 @@ class MainWindow(QtWidgets.QMainWindow):
         # Operations tab
         self.tab_1 = QtWidgets.QWidget()
         self.tab_1_layout = QtWidgets.QGridLayout()
-        self.tab_1_layout.addWidget(truncate := OperationButton("Truncate"), 1, 1)
-        self.tab_1_layout.addWidget(rectify := OperationButton("Rectify"), 2, 1)
-        self.tab_1_layout.addWidget(facet := OperationButton("Facet"), 3, 1)
-        self.tab_1_layout.addWidget(dual := OperationButton("Dual"), 2, 2)
-        self.tab_1_layout.addWidget(cap := OperationButton("Cap"), 1, 3)
-        self.tab_1_layout.addWidget(bridge := OperationButton("Bridge"), 2, 3)
-        self.tab_1_layout.addWidget(stellate := OperationButton("Stellate"), 3, 3)
+        self.tab_1_layout.setAlignment(QtCore.Qt.AlignTop)
+        self.tab_1_layout.addWidget(uniform_truncate := OperationButton("Uniform"), 1, 1)
+        self.tab_1_layout.addWidget(rectify := OperationButton("Rectify"), 1, 2)
+        self.tab_1_layout.addWidget(dual := OperationButton("Dual"), 1, 3)
+        self.tab_1_layout.addWidget(truncate := OperationButton("Truncate"), 2, 1, 1, 3)
+        self.tab_1_layout.addWidget(truncate_fraction_slider := FractionSlider(), 3, 1, 1, 3)
+        self.tab_1_layout.addWidget(truncate_fraction_label := QtWidgets.QLabel(str(truncate_fraction_slider.get_value())), 2, 3)
+
+
+        self.tab_1_layout.addWidget(cap := OperationButton("Cap"), 4, 1)
+        self.tab_1_layout.addWidget(bridge := OperationButton("Bridge"), 4, 2)
+        self.tab_1_layout.addWidget(dual2 := OperationButton("Dual"), 4, 3)
+        self.tab_1_layout.addWidget(augment := OperationButton("Augment"), 5, 1, 1, 3)
+        self.tab_1_layout.addWidget(augment_fraction_slider := FractionSlider(), 6, 1, 1, 3)
+        self.tab_1_layout.addWidget(augment_fraction_label := QtWidgets.QLabel(str(augment_fraction_slider.get_value())), 5, 3)
+        #truncate_fraction_label.setAlignment(QtCore.Qt.AlignRight)
+        #self.tab_1_layout.addWidget(midpoint_radio := QtWidgets.QRadioButton())
+
         self.tab_1.setLayout(self.tab_1_layout)
 
         self.tab_2 = QtWidgets.QWidget()
         self.tab_2_layout = QtWidgets.QGridLayout()
+        self.tab_2_layout.setAlignment(QtCore.Qt.AlignTop)
         self.tab_2_layout.addWidget(decompose := OperationButton("Decompose"), 1, 1)
         self.tab_2_layout.addWidget(uncouple := OperationButton("Uncouple"), 1, 2)
         self.tab_2.setLayout(self.tab_2_layout)
 
         self.tab_3 = QtWidgets.QWidget()
         self.tab_3_layout = QtWidgets.QGridLayout()
-        self.tab_3_layout.addWidget(prismate := OperationButton("Prismate"), 1, 1)
+        self.tab_3_layout.setAlignment(QtCore.Qt.AlignTop)
+        self.tab_3_layout.addWidget(facet := OperationButton("Facet"), 1, 1)
+        self.tab_3_layout.addWidget(stellate := OperationButton("Stellate"), 1, 2)
+        self.tab_3_layout.addWidget(prismate := OperationButton("Prismate"), 1, 3)
         self.tab_3.setLayout(self.tab_3_layout)
 
         # Create tab widget
         self.tab_widget = QtWidgets.QTabWidget()
         self.tab_widget.addTab(self.tab_1, "Truncate")
         self.tab_widget.addTab(self.tab_2, "Separate")
-        self.tab_widget.addTab(self.tab_3, "Hypermutate")
+        self.tab_widget.addTab(self.tab_3, "Other")
 
         # Create descriptive text box
         self.descriptive_textbox = QtWidgets.QLabel("")
@@ -105,6 +137,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # Polyhedra rendering options
         self.show_edges_only = QtWidgets.QCheckBox("Show edges only", self)
         self.show_prior_polyhedra_checkbox = QtWidgets.QCheckBox("Show prior polyhedra", self)
+        self.midpoint_checkbox = QtWidgets.QCheckBox("Determine midpoint from midsphere", self)
+        self.midpoint_checkbox.setChecked(True)
 
         # Create left vertical box
         self.left_vbox = QtWidgets.QVBoxLayout()
@@ -112,6 +146,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.left_vbox.addWidget(self.descriptive_textbox)
         self.left_vbox.addWidget(self.show_edges_only)
         self.left_vbox.addWidget(self.show_prior_polyhedra_checkbox)
+        self.left_vbox.addWidget(self.midpoint_checkbox)
         self.left_widget = QtWidgets.QWidget()
         self.left_widget.setLayout(self.left_vbox)
         self.left_widget.setMaximumWidth(330)
@@ -151,7 +186,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.central_widget)
 
         # Connect operations to buttons/actions
-        truncate.clicked.connect(lambda: self.operations(Polyhedron.truncate))
+        truncate.clicked.connect(lambda: self.operations(Polyhedron.truncate, fraction=truncate_fraction_slider.get_value(), method="by_midsphere" if self.midpoint_checkbox.isChecked() else "by_midpoint"))
         rectify.clicked.connect(lambda: self.operations(Polyhedron.rectify))
         facet.clicked.connect(lambda: self.operations(Polyhedron.facet))
         dual.clicked.connect(lambda: self.operations(Polyhedron.reciprocate))
@@ -160,6 +195,17 @@ class MainWindow(QtWidgets.QMainWindow):
         stellate.clicked.connect(lambda: self.operations(Polyhedron.stellate))
         decompose.clicked.connect(lambda: self.operations(Polyhedron.decompose))
         uncouple.clicked.connect(lambda: self.operations(Polyhedron.uncouple))
+
+        def truncation_fraction_changed(qlabel: QtWidgets.QLabel, qslider: FractionSlider, qbutton: OperationButton):
+            value = qslider.get_value()
+            qlabel.setText(str(value))
+            # if value == 1:
+            #     qbutton.setText("Rectify")
+            # else:
+            #     qbutton.setText("Truncate")
+        truncate_fraction_slider.valueChanged.connect(lambda: truncation_fraction_changed(truncate_fraction_label, truncate_fraction_slider, truncate))
+        augment_fraction_slider.valueChanged.connect(lambda: truncation_fraction_changed(augment_fraction_label, augment_fraction_slider, augment))
+
         tetrahedron_action.triggered.connect(lambda: self.set_current_polyhedron(figures.tetrahedron))
         cube_action.triggered.connect(lambda: self.set_current_polyhedron(figures.cube))
         octahedron_action.triggered.connect(lambda: self.set_current_polyhedron(figures.octahedron))
@@ -187,9 +233,9 @@ class MainWindow(QtWidgets.QMainWindow):
         #self.current_polyhedron = polyhedron
         #self.add_list_item(polyhedron.__class__.__name__.capitalize())
 
-    def operations(self, operation):
+    def operations(self, operation, **kwargs):
         """Perform a polyhedral operation on current_polyhedron."""
-        current_polyhedron = operation(self.polytope)
+        current_polyhedron = operation(self.polytope, **kwargs)
         self.polytope_models.append(Model(current_polyhedron))
         #self.add_list_item(operation.__name__.capitalize())
 

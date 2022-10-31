@@ -234,10 +234,8 @@ class Polyhedron(Polytope):
         # Create new faces (new faces derived from previous vertices)
         unordered_face = []
         for neighbour in vertex.neighbours:
-            midpoint = method(LineSegment([Point(vertex.coordinates), Point(neighbour.coordinates)]))
-            new_vertex = ((vertex.coords[0]*(1-fraction) + midpoint[0]*fraction),  # x coordinate
-                          (vertex.coords[1]*(1-fraction) + midpoint[1]*fraction),  # y coordinate
-                          (vertex.coords[2]*(1-fraction) + midpoint[2]*fraction)) 
+            midpoint = method(LineSegment([vertex, neighbour]))
+            new_vertex = LineSegment([vertex, midpoint]).fractional_midpoint(fraction)
             unordered_face.append((new_vertex, neighbour))
 
         # Find edges by comparing endpoint faces
@@ -268,10 +266,9 @@ class Polyhedron(Polytope):
         """Perform rectification operation. This is a special case of the truncation operation.
         This diminishes the polyhedron at vertices such that edges are converted into new vertices.
         The new vertices are created using the method parameter, which is described in more detail under the truncation function."""
-        print("Rectifying")
         return self.truncate(fraction=1, method=method)
 
-    def truncate(self, fraction=Rational(2, 3), method="by_midsphere") -> Polyhedron:
+    def truncate(self, fraction: Rational|int = Rational(2, 3), method="by_midsphere") -> Polyhedron:
         """Perform truncation operation. This diminishes the polyhedron at vertices such that new faces are made.
         The default implementation uses the intersections of the edges to the polyhedron's midsphere to base the maximum diminishment.
         And thus, this only works on polyhedra that have a midsphere.
@@ -280,7 +277,12 @@ class Polyhedron(Polytope):
         This method doesn't require a midsphere and instead cleaves vertices by marking the midpoint (halfway down the edge).
         For uniform polyhedra, this produces the same results as the midsphere method; however, for nonuniform polyhedra,
         this can result in nonplanar faces."""
-        print("Truncating")
+        if fraction == 0:
+            return self
+        if fraction == 1:
+            print("Rectifying")
+        else:
+            print("Truncating")
 
         # Decide on method of truncation
         if method == "by_midsphere":
@@ -292,6 +294,7 @@ class Polyhedron(Polytope):
             create_new_vertices = LineSegment.find_midpoint
         else:
             print("Not a valid option for parameter alt_method.")
+            return self
         
         # Arrays for new polyhedron's vertices, edges, and faces
         new_vertices = []
@@ -304,20 +307,15 @@ class Polyhedron(Polytope):
             # Find new vertices
             offset_cycle = islice(cycle(face.vertices), 1, None)
             for vertex, neighbour in zip(face.vertices, offset_cycle):
-                midpoint = create_new_vertices(LineSegment([Point(vertex.coordinates), Point(neighbour.coordinates)]))
-
-                new_vertex = ((vertex.coords[0]*(1-fraction) + midpoint[0]*fraction),  # x coordinate
-                               (vertex.coords[1]*(1-fraction) + midpoint[1]*fraction),  # y coordinate
-                               (vertex.coords[2]*(1-fraction) + midpoint[2]*fraction)) 
+                midpoint = create_new_vertices(LineSegment([vertex, neighbour]))
+                new_vertex = LineSegment([vertex, midpoint]).fractional_midpoint(fraction)
 
                 # Test if midpoint is already in new_vertices, and if not, add it
                 self.__add_to_list(new_vertex, new_vertices, new_face)
 
                 # Checks if not rectification
                 if fraction != 1:
-                    new_vertex = ((neighbour.coords[0]*(1-fraction) + midpoint[0]*fraction),  # x coordinate
-                                (neighbour.coords[1]*(1-fraction) + midpoint[1]*fraction),  # y coordinate
-                                (neighbour.coords[2]*(1-fraction) + midpoint[2]*fraction))
+                    new_vertex = LineSegment([neighbour, midpoint]).fractional_midpoint(fraction)
                     self.__add_to_list(new_vertex, new_vertices, new_face)
 
             new_faces.append(new_face)
@@ -495,16 +493,16 @@ class LineSegment(Polytope):
         """Alias for centroid."""
         return self.centroid
 
-    def find_third(self) -> Point:
-        return ((self[0][0]*Rational(2, 3) + self[1][0]*Rational(1, 3)),  # x coordinate
-                (self[0][1]*Rational(2, 3) + self[1][1]*Rational(1, 3)),  # y coordinate
-                (self[0][2]*Rational(2, 3) + self[1][2]*Rational(1, 3)))  # z coordinate
-
-    def find_midsphere_intersection(self):
+    def find_midsphere_intersection(self) -> Point:
         """"Use sympy to find point on line closest to origin."""
         line = sympy.Line3D(sympy.Point3D(self[0].coords), sympy.Point3D(self[1].coords))
         point = line.projection(sympy.Point3D(0, 0, 0))
-        return point.coordinates
+        return Point(point.coordinates)
+
+    def fractional_midpoint(self, fraction: Rational):
+        return ((self[0][0]*(1-fraction) + self[1][0]*fraction),
+                (self[0][1]*(1-fraction) + self[1][1]*fraction),
+                (self[0][2]*(1-fraction) + self[1][2]*fraction))
 
 
 class Point(Polytope):
