@@ -1,33 +1,35 @@
 # shapeshift
-A GUI application for generating and visualizing polyhedra using geometric operations.
+A GUI application for generating and visualizing polyhedra using geometric operations. This branch is a rewrite of the project in Nim.
 
 ## Premise
-![Screenshot of Shapeshift](img/cube-cuboctahedron.png)
+Seed polyhedra are provided.
+Operations can then be applied to polyhedra to create new and more complex ones.
 
-Seed polyhedra are provided as the five Platonic solids.
-The following operations can be combined in different orders to create new and complex polyhedra:
-* [Truncation](https://en.wikipedia.org/wiki/Truncation_(geometry))- creates new faces at each vertex
-* [Rectification](https://en.wikipedia.org/wiki/Rectification_(geometry))- constructs new vertices from edges
-* [Faceting](https://en.wikipedia.org/wiki/Faceting)- keeps vertices but makes new faces from them
-* [Reciprocation](https://en.wikipedia.org/wiki/Dual_polyhedron)- converts vertices to faces and vice versa
+## Setup
+`owlkettle` works on Ubuntu 22, but not Ubuntu 20. This is because GTK4 is not available for the later. The GUI also isn't working for Ubuntu 24.
 
-Shapeshift displays these resulting polyhedra in 3D rotation and provides details on vertices, edges, and faces.
+First had to update:
+`sudo apt-get update`
 
-## Dependencies
-Shapeshift uses Python3 along with the following packages:
+Then install `gcc` (wouldn't work if the above command wasn't run first):
+`sudo apt install gcc`
 
-* `moderngl` for polyhedron visualization
-* `numpy` for numerical calculations
-* `pyrr` for matrix creation
-* `pyside6` for window and widgets
-* `sympy` for symbolic notation
+Then download `choosenim`:
+`curl https://nim-lang.org/choosenim/init.sh -sSf | sh`
 
-The dependencies and their versions are stored in `requirements.txt`. These can be installed with the following code while in the highest-level package directory:
-```
-python3 -m pip install -r requirements.txt
-```
+Then add `export PATH=/home/allytrope/.nimble/bin:$PATH` to `.profile` or `.bashrc`
 
-The GUI itself can then be opened as follows:
-```
-python3 window.py
-```
+For `owlkettle`:
+`sudo apt install libgtk-4-dev libadwaita-1-dev`
+`sudo apt-get install freeglut3`
+`sudo apt-get install libglu1-mesa`
+
+Then install `owlkettle`:
+`nimble install owlkettle`
+`nimble install opengl`
+
+If on Ubuntu 24, it gives these errors:
+`could not load: libGLU.so.1`
+`could not load: libglut.so.3`
+
+For now, I'm testing if it the GUI code runs with this code: https://github.com/nim-lang/opengl/blob/master/examples/glut_example.nim
