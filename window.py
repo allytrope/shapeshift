@@ -186,7 +186,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.central_widget)
 
         # Connect operations to buttons/actions
-        truncate.clicked.connect(lambda: self.operations(Polyhedron.truncate, fraction=truncate_fraction_slider.get_value(), method="by_midsphere" if self.midpoint_checkbox.isChecked() else "by_midpoint"))
+        truncate.clicked.connect(lambda: self.operations(Polyhedron.truncate2, fraction=truncate_fraction_slider.get_value())) #, method="by_midsphere" if self.midpoint_checkbox.isChecked() else "by_midpoint"))
         rectify.clicked.connect(lambda: self.operations(Polyhedron.rectify))
         facet.clicked.connect(lambda: self.operations(Polyhedron.facet))
         dual.clicked.connect(lambda: self.operations(Polyhedron.reciprocate))

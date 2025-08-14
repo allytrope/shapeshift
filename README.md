@@ -2,14 +2,10 @@
 A GUI application for generating and visualizing polyhedra using geometric operations.
 
 ## Premise
-![Screenshot of Shapeshift](img/cube-cuboctahedron.png)
+![Screenshot of Shapeshift](img/fractional_truncation.png)
 
 Seed polyhedra are provided as the five Platonic solids.
-The following operations can be combined in different orders to create new and complex polyhedra:
-* [Truncation](https://en.wikipedia.org/wiki/Truncation_(geometry))- creates new faces at each vertex
-* [Rectification](https://en.wikipedia.org/wiki/Rectification_(geometry))- constructs new vertices from edges
-* [Faceting](https://en.wikipedia.org/wiki/Faceting)- keeps vertices but makes new faces from them
-* [Reciprocation](https://en.wikipedia.org/wiki/Dual_polyhedron)- converts vertices to faces and vice versa
+From there, polyhedra can be [truncated](https://en.wikipedia.org/wiki/Truncation_(geometry)) to create new faces at each vertex.
 
 Shapeshift displays these resulting polyhedra in 3D rotation and provides details on vertices, edges, and faces.
 
@@ -31,3 +27,7 @@ The GUI itself can then be opened as follows:
 ```
 python3 window.py
 ```
+
+## Dependency issues
+As of 2023/10/28, Python3.12 isn't compatible with all dependencies yet.
+Python 3.9 - Python 3.11 appear to work.

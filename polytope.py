@@ -13,7 +13,7 @@ import weakref
 # Third-party imports
 import numpy as np
 import sympy
-from sympy import Rational
+from sympy import Plane, Point3D, Rational, symbols
 
 # Local imports
 #from exceptions import SubfaceError
@@ -82,6 +82,11 @@ class Polytope:
             neighbours = neighbours.union(subface.superfaces)
         neighbours.remove(self)
         return list(neighbours)
+
+    @cached_property
+    def superfaces(self, rank) -> List[Polytope]:
+        """Return n-faces that contain this polytope where n equals the specified rank."""
+        
 
     @property
     def children(self) -> List[Polytope]:
@@ -153,7 +158,7 @@ class Polytope:
     @property
     def ambient_dimension(self) -> int:
         """The number of dimensions in which the polytope resides in.
-        Note that this is not always the dimensionality of the shape itself,
+        Note that this is not always the rank of the shape itself,
         such as a square in a 3D space."""
         return self.vertices[0].ambient_dimension
 
@@ -173,10 +178,130 @@ class Polytope:
             if rank <= 3:
                 nface = nfaces[rank]
             else:
-                nface = f"{rank}-face"
+                nface = f"{rank}-faces"
             count = len(self.nfaces(rank))
             print(f"{nface}: {count}")
     
+    # Under development
+    # Note that not all parameters mentioned actually work yet. This is a layout for how the function will work.
+    def truncate(self,
+        fraction = Rational(1, 3),
+        nfaces = {0},
+        hyper = False,
+        pattern = 'all',
+        elements = None):
+        """
+        Cut n-faces to create new facets.
+
+        Parameters
+        ----------
+        fraction: Rational|int
+            The fraction towards rectification.
+            For example, 1/2 would cut halfway to the rectified polytope.
+            `Rational(1)` is equivalent to rectifying.
+            Likewise, 2 birectifies.
+            `Rational(4, 3)` would give a polytope truncation between rectification and birectification.
+        nfaces: Set(int)
+            Specifies which n-faces should be truncated.
+            For instance, `{0, 1}` would truncate both vertices and edges (also known as cantellation).
+            The default `{0}` truncates only vertices.
+        hyper: bool
+            Flag for whether to allow hypertruncation. That is, inversing edges after they become a point.
+            Truncations with `fraction` from 0 to 1/2 will be identical when this is set to true.
+            Beyond that, a value of false will cause larger values to lead to
+            bitruncation, birectification, tritruncation, etc.
+            If true, larger than 1/2 values will lead to
+            hypertruncation, quasitruncation, and antitruncation before cycling back again.
+        pattern: str
+            Determines which elements to truncate.
+            `all` (default): Truncates all of the elements of the specified dimension.
+            `alternate`: Truncates every other. That is, no two adjacent n-faces. Not all polytopes are compatible.
+        elements: Set(Element)
+            Specifies which elements are to be truncated. If specified, takes priority over `pattern` parameter.
+            By default, all n-faces of the specified dimensions from `nfaces` are truncated.
+            Otherwise, only those in the passed set will be truncated.
+        """
+
+
+
+        # for rank in range(1, self.rank): # Or is it 0?
+        #     for nface in self.nfaces(rank):
+
+        #         # Create line from center to vertex
+        #         # TODO: Create line function
+        #         line = Line(self.center, vertex)
+        #         # Shift down line
+        #         new_vertex = translate(vertex, self.center, fraction)
+        #         # Find n-1 plane that is perpendicular to line at the new vertex
+        #         normal = line.perpendicular(new_vertex)
+
+        #         # Find reduced length from intersecting lines and then create new n-1 plane between ends of overlapping parts
+
+        #         # For every neighbouring facet, iterate down to edges,
+        #         new_facets = []
+        #         for facet in vertex.neighbouring_facets():
+        #             new_facets.append(facet.intersect(normal))
+        #         # finding intersections with plane, and constructing polygons.
+        #         # Then build the higher elements on the way back up.
+
+
+        # for edge in self.edges:
+        #     x, y = symbols('x y')
+        #     x1 = edge.vertices[0].coords
+        #     x2 = edge.vertices[0].coords
+        #     m = (y2 - y1)/(x2 - x1)
+        #     line_equation = Eq(y - y1, m*(x - x1) )
+
+
+        # Create a new facet for each vertex
+        for vertex in self.vertices:
+            # Shift point toward center
+            closer_coords = LineSegment([Point(vertex.coords), Point((0, 0, 0))]).fractional_point(fraction)
+
+            # Create plane at vertex where that vertex is the closest point to origin
+            truncating_plane = Plane(Point3D(closer_coords), normal_vector=closer_coords)
+
+            ## Find intersections with other facets to determine new boundaries
+            for facet in self.facets:
+                plane = Plane(Point3D(facet.vertices[0].coords), Point3D(facet.vertices[1].coords), Point3D(facet.vertices[2].coords))
+                new_line = truncating_plane.intersection(plane)
+                #print(new_line)
+
+        # if elements is None:
+        #     elements =
+
+        # for element in elements:
+        #     element.diminish()
+            
+        return self
+
+
+
+
+        # """"Improved truncation by mapping nfaces to new nfaces."""
+        # vertices = [edge.midpoint for edge in self.edges]
+    ### Special cases of truncation
+
+    def alternate(self, fraction = Rational(1, 3), hyper = False):
+        """Alternatively truncate on vertices."""
+        return self.truncate(nfaces={0}, fraction=fraction, hyper=False, pattern='alternate')
+
+    def edge_truncate(self, fraction = Rational(1, 3), hyper = False):
+        """Truncation on vertices and edges."""
+        return self.truncate(nfaces={1}, fraction=fraction, hyper=False)
+
+    def cantellate(self, fraction = Rational(1, 3), hyper = False):
+        """Truncation on vertices and edges."""
+        return self.truncate(nfaces={0, 1}, fraction=fraction, hyper=False)
+    
+    def runcinate(self, fraction = Rational(1, 3), hyper = False):
+        """Truncation on vertices, edges, and faces."""
+        return self.truncate(nfaces={0, 1, 2}, fraction=fraction, hyper=False)
+    
+    def stericate(self, fraction = Rational(1, 3), hyper = False):
+        """Truncation on vertices, edges, faces, and cells."""
+        return self.truncate(nfaces={0, 1, 2, 3}, fraction=fraction, hyper=False)
+
 
 class Polyhedron(Polytope):
     """The 3-polytope."""
@@ -226,7 +351,7 @@ class Polyhedron(Polytope):
             new_face.append(len(new_vertices) - 1)
 
     @staticmethod
-    def diminish(method, fraction, vertex, new_vertices):
+    def diminish(vertex, new_vertices, fraction):
         """Remove pyramid off polyhedron where apex is a vertex on the polyhedron.
         Takes a func to determine how base of pyramid is formed.
         Used in truncate(), rectify(), and facet().
@@ -234,9 +359,8 @@ class Polyhedron(Polytope):
         # Create new faces (new faces derived from previous vertices)
         unordered_face = []
         for neighbour in vertex.neighbours:
-            midpoint = method(LineSegment([vertex, neighbour]))
-            new_vertex = LineSegment([vertex, midpoint]).fractional_midpoint(fraction)
-            unordered_face.append((new_vertex, neighbour))
+            midpoint = LineSegment([Point(vertex.coordinates), Point(neighbour.coordinates)]).fractional_point(fraction)
+            unordered_face.append((midpoint, neighbour))
 
         # Find edges by comparing endpoint faces
         edges = []
@@ -261,42 +385,42 @@ class Polyhedron(Polytope):
             index = new_vertices.index(vertex)
             new_face.append(index)
         return new_face
+    
+    # Under development
+    def intersphere(self, rank):
+        """Find sphere that intersects all elements of specified rank.
+        With a polyhedron, these spheres are usually given more specific terms.
+        Vertices intersect the outsphere, edges intersect the midsphere, and faces intersect the outsphere."""
+        self.nfaces(rank)
 
-    def rectify(self, method="by_midsphere") -> Polyhedron:
-        """Perform rectification operation. This is a special case of the truncation operation.
-        This diminishes the polyhedron at vertices such that edges are converted into new vertices.
-        The new vertices are created using the method parameter, which is described in more detail under the truncation function."""
-        return self.truncate(fraction=1, method=method)
+    # Under development
+    def has_intersphere(self, rank):
+        """Find if sphere exists that intersects all elements of specified rank.
+        With a polyhedron, these spheres are usually given more specific terms.
+        Vertices intersect the outsphere, edges intersect the midsphere, and faces intersect the outsphere."""
+        self.nfaces(rank)
 
-    def truncate(self, fraction: Rational|int = Rational(2, 3), method="by_midsphere") -> Polyhedron:
-        """Perform truncation operation. This diminishes the polyhedron at vertices such that new faces are made.
-        The default implementation uses the intersections of the edges to the polyhedron's midsphere to base the maximum diminishment.
-        And thus, this only works on polyhedra that have a midsphere.
+    # Underdevelopment
+    # @staticmethod
+    # def truncation_center(element)
 
-        An alternate method can be used by setting the parameter method to "by_midpoint".
-        This method doesn't require a midsphere and instead cleaves vertices by marking the midpoint (halfway down the edge).
-        For uniform polyhedra, this produces the same results as the midsphere method; however, for nonuniform polyhedra,
-        this can result in nonplanar faces."""
-        if fraction == 0:
-            return self
+    # Under development
+    def diminish2(self, element):
+        """Remove specified element, creating a facet in its place (along with its associated elements)."""
+
+        # Find sphere (that is, insphere, outsphere, midsphere, or other intersphere)
+        for subface in element.subfaces:
+            subface.diminish()
+
+
+
+    def truncate2(self, fraction: Rational = Rational(1, 3)):
+        """Perform truncation operation. Cleave vertices by marking 1/3rd and 2/3rds of each edge as new vertices."""
+        print("Truncating")
         if fraction == 1:
-            print("Rectifying")
-        else:
-            print("Truncating")
+            print("-->", end=' ')
+            return self.rectify()
 
-        # Decide on method of truncation
-        if method == "by_midsphere":
-            if not self.is_canonical():
-                print("Polyhedron is not canonical; must have a midsphere to rectify.")
-                return self
-            create_new_vertices = LineSegment.find_midsphere_intersection
-        elif method == "by_midpoint":
-            create_new_vertices = LineSegment.find_midpoint
-        else:
-            print("Not a valid option for parameter alt_method.")
-            return self
-        
-        # Arrays for new polyhedron's vertices, edges, and faces
         new_vertices = []
         new_faces = []
 
@@ -304,30 +428,76 @@ class Polyhedron(Polytope):
         for face in self.faces:
             new_face = []
 
-            # Find new vertices
-            offset_cycle = islice(cycle(face.vertices), 1, None)
-            for vertex, neighbour in zip(face.vertices, offset_cycle):
-                midpoint = create_new_vertices(LineSegment([vertex, neighbour]))
-                new_vertex = LineSegment([vertex, midpoint]).fractional_midpoint(fraction)
+            # Create new vertices and faces
+            for x in range(len(face.vertices)):
+                coordinates1 = face.vertices[x - 1].coordinates
+                coordinates2 = face.vertices[x].coordinates
 
-                # Test if midpoint is already in new_vertices, and if not, add it
-                self.__add_to_list(new_vertex, new_vertices, new_face)
+                fraction_forward = LineSegment([Point(coordinates1), Point(coordinates2)]).fractional_point(fraction)
+                fraction_backward = LineSegment([Point(coordinates2), Point(coordinates1)]).fractional_point(fraction)
 
-                # Checks if not rectification
-                if fraction != 1:
-                    new_vertex = LineSegment([neighbour, midpoint]).fractional_midpoint(fraction)
-                    self.__add_to_list(new_vertex, new_vertices, new_face)
+                self.__add_to_list(fraction_forward, new_vertices, new_face)
+                self.__add_to_list(fraction_backward, new_vertices, new_face)
 
             new_faces.append(new_face)
-            
+
         # Create new faces (new faces derived from previous vertices)
         for vertex in self.vertices:
-            new_face = self.diminish(create_new_vertices, fraction, vertex, new_vertices)
+            new_face = self.diminish(vertex, new_vertices, fraction)
             new_faces.append(new_face)
 
         return create_polytope(new_vertices, new_faces)
 
-    def facet(self) -> Polyhedron:
+    def rectify(self, method="by_midsphere"):
+        """Perform rectification operation. This diminishes the polyhedron at vertices such edges are converted into new vertices.
+        The default implementation uses the intersections of the edges to the polyhedron's midsphere to place new vertices.
+        And thus, this only works on polyhedra that have a midsphere.
+
+        An alternate method can be used by setting the parameter method to "by_midpoint".
+        This method doesn't require a midsphere and instead cleaves vertices by marking midpoints of edges as new vertices.
+        For uniform polyhedra, this produces the same results as the midsphere method; however, for nonuniform polyhedra,
+        this can result in nonplanar faces."""
+        print("Rectifying")
+
+        # Decide on method of rectification
+        if method == "by_midsphere":
+            if not self.is_canonical():
+                print("Polyhedron is not canonical; must have a midsphere to rectify.")
+                return self
+            create_new_vertices = LineSegment.find_midsphere_intersection
+        elif method == "by_midpoint":
+            create_new_vertices = LineSegment.midpoint
+        else:
+            print("Not a valid option for parameter alt_method.")
+        
+
+        # Arrays for new polyhedron's vertices, edges, and faces
+        new_vertices = []
+        new_faces = []
+
+        # Create rectified faces (new faces derived from previous faces)
+        for face in self.faces:
+            new_face = []
+
+            # Find new vertices
+            offset_cycle = islice(cycle(face.vertices), 1, None)
+            for vertex, neighbour in zip(face.vertices, offset_cycle):
+                midpoint = create_new_vertices(LineSegment([Point(vertex.coordinates), Point(neighbour.coordinates)]))
+
+                # Test if midpoint is already in new_vertices, and if not, add it
+                self.__add_to_list(midpoint, new_vertices, new_face)
+
+            new_faces.append(new_face)
+            
+        
+        # Create new faces (new faces derived from previous vertices)
+        for vertex in self.vertices:
+            new_face = self.diminish(vertex, new_vertices, Rational(1, 2))
+            new_faces.append(new_face)
+
+        return create_polytope(new_vertices, new_faces)
+
+    def facet(self):
         """Perform facet operation. Maintain all previous vertices, but connect them differently to form new faces on a nonconvex figure."""
         print("Faceting")
 
@@ -344,7 +514,7 @@ class Polyhedron(Polytope):
 
         return create_polytope(new_vertices, new_faces)
 
-    def reciprocate(self) -> Polyhedron:
+    def reciprocate(self):
         """Perform reciprocation operation. Convert centroid of each face into a vertex and connect each adjacent centroid.
         This implementation creates skew faces on some polyhedra."""
         print("Reciprocating")
@@ -379,7 +549,7 @@ class Polyhedron(Polytope):
         print("Under development")
         return self
 
-    def stellate(self, nth_stellation: int = 2) -> Polyhedron:
+    def stellate(self, nth_stellation: int = 2):
         """Extends edges until meeting other edges, creating new vertices and changing shape of faces.
         The base polyhedron is designated as the first stellation, or nth_stellation=1."""
         print("Under development")
@@ -409,7 +579,6 @@ class Polyhedron(Polytope):
             except:
                 print("Stellation of order", nth_stellation, "does not exist.")
                 return self
-        return create_polytope()
 
     def greaten(self):
         """Extend faces to form new larger faces."""
@@ -484,25 +653,23 @@ class LineSegment(Polytope):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    @property
-    def midpoint(self) -> Point:
+    # @property
+    def midpoint(self):
         """Alias for centroid."""
         return self.centroid
 
-    def find_midpoint(self) -> Point:
-        """Alias for centroid."""
-        return self.centroid
+    def fractional_point(self, fraction: Rational):
+        """Find point as a portion of the way down the line segment. Works for line segments of any ambient space."""
+        coords = []
+        for idx, _ in enumerate(self.vertices[0]):
+            coords.append(self[0][idx]*(1-fraction) + self[1][idx]*fraction)
+        return tuple(coords)
 
-    def find_midsphere_intersection(self) -> Point:
+    def find_midsphere_intersection(self):
         """"Use sympy to find point on line closest to origin."""
         line = sympy.Line3D(sympy.Point3D(self[0].coords), sympy.Point3D(self[1].coords))
         point = line.projection(sympy.Point3D(0, 0, 0))
-        return Point(point.coordinates)
-
-    def fractional_midpoint(self, fraction: Rational):
-        return ((self[0][0]*(1-fraction) + self[1][0]*fraction),
-                (self[0][1]*(1-fraction) + self[1][1]*fraction),
-                (self[0][2]*(1-fraction) + self[1][2]*fraction))
+        return point.coordinates
 
 
 class Point(Polytope):
@@ -635,3 +802,4 @@ def create_polytope(*elements, with_edges=False) -> Polytope:
 
     # Create and return outermost container for all n-faces
     return polytope
+
