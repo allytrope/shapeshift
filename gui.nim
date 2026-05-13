@@ -20,7 +20,7 @@ method view(app: AppState): Widget =
       defaultSize = (200, 60)
       HeaderBar {.addTitlebar.}:
         ToggleButton{.addRight.}:
-          text = "Models"
+          text = "Polytopes"
       Box(orient = OrientX, margin = 12, spacing = 6):
         Box(orient = OrientY, margin = 12, spacing = 6):
           # Area for rendering polyhedra
@@ -130,7 +130,7 @@ method view(app: AppState): Widget =
               glClearDepth(1.0)                                 # Set background depth to farthest
               glEnable(GL_DEPTH_TEST)                           # Enable depth testing for z-culling
               glDepthFunc(GL_LEQUAL)                            # Set the type of depth-test
-              glShadeModel(GL_SMOOTH)                           # Enable smooth shading
+              glShadePolytope(GL_SMOOTH)                           # Enable smooth shading
               glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST) # Nice perspective corrections
 
               glutMainLoop()
@@ -140,7 +140,7 @@ method view(app: AppState): Widget =
             #proc render(size: (int, int)): bool =
 
 
-          #Label(text = "OpenGL Model")
+          #Label(text = "OpenGL Polytope")
         Box(orient = OrientY, margin = 12, spacing = 6):
 
 

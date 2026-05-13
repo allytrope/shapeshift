@@ -1,9 +1,14 @@
 # shapeshift
 A GUI application for generating and visualizing polyhedra using geometric operations. This branch is a rewrite of the project in Nim.
 
-## Premise
+## Project Goals
+This tool seeks to include a catalogue of operations that can be applied to polytopes in sequence to generate new polytopes, inlcuding to generale these operations such that they work on polytopes of arbitrary dimension.
+
+
 Seed polyhedra are provided.
 Operations can then be applied to polyhedra to create new and more complex ones.
+
+
 
 ## Setup
 `owlkettle` works on Ubuntu 22, but not Ubuntu 20. This is because GTK4 is not available for the later. The GUI also isn't working for Ubuntu 24.

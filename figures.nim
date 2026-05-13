@@ -3,13 +3,13 @@
 import std/math
 
 # Local imports
-import polytope
+import polytope, translate
 
 
 const PHI = (1 + pow(5, 0.5))/2
 
 let
-  tetrahedron* = createModel(
+  tetrahedron* = createPolytope(
     vertices = @[@[1.0, 1.0, 1.0], @[-1.0, -1.0, 1.0], @[-1.0, 1.0, -1.0], @[1.0, -1.0, -1.0]],
     elements = @[
       @[
@@ -20,7 +20,7 @@ let
       ],
     ],
     withEdges=true)
-  # tetrahedron* = createModel(
+  # tetrahedron* = createPolytope(
   #   vertices = @[@[1.0, 1.0, 1.0], @[-1.0, -1.0, 1.0], @[-1.0, 1.0, -1.0], @[1.0, -1.0, -1.0]],
   #   elements = @[
   #     @[
@@ -29,22 +29,22 @@ let
   #     ],
   #   withEdges=false)
 
-  # cube* = createModel(
+  # cube* = createPolytope(
   #   [(1.0, 1.0, 1.0), (1.0, 1.0, -1.0), (1.0, -1.0, -1.0), (1.0, -1.0, 1.0), (-1.0, -1.0, 1.0), (-1.0, -1.0, -1.0), (-1.0, 1.0, -1.0),(-1.0, 1.0, 1.0)],
   #   [[0, 1, 2, 3], [0, 1, 6, 7], [0, 3, 4, 7], [4, 5, 6, 7], [4, 5, 2, 3], [1, 2, 5, 6]])
 
-  # octahedron* = createModel(
+  # octahedron* = createPolytope(
   #   [(0, 1, 0), (1, 0, 0), (0, 0, 1), (-1, 0, 0), (0, 0, -1), (0, -1, 0)],
   #   [[0, 1, 4], [0, 1, 2], [0, 2, 3], [0, 3, 4], [1, 4, 5], [1, 2, 5], [2, 3, 5], [3, 4, 5]])
 
-  # dodecahedron* = createModel(
+  # dodecahedron* = createPolytope(
   #   [(1, 1, 1), (1, 1, -1), (1, -1, 1), (-1, 1, 1), (-1, 1, -1), (-1, -1, 1), (1, -1, -1), (-1, -1, -1),
   #     (0, PHI, 1/PHI), (0, PHI, -1/PHI), (0, -PHI, 1/PHI), (0, -PHI, -1/PHI), (1/PHI, 0, PHI), (1/PHI, 0, -PHI),
   #     (-1/PHI, 0, PHI), (-1/PHI, 0, -PHI), (PHI, 1/PHI, 0), (PHI, -1/PHI, 0), (-PHI, 1/PHI, 0), (-PHI, -1/PHI, 0)],
   #   [[14, 12, 2, 10, 5], [12, 0, 16, 17, 2], [2, 17, 6, 11, 10], [5, 10, 11, 7, 19], [17, 16, 1, 13, 6], [6, 13, 15, 7, 11], 
   #     [14, 3, 18, 19, 5], [14, 12, 0, 8, 3], [3, 8, 9, 4, 18], [19, 18, 4, 15, 7], [8, 0, 16, 1, 9], [9, 1, 13, 15, 4]])
 
-  # icosahedron* = createModel(
+  # icosahedron* = createPolytope(
   #   [(0, 1, PHI), (0, 1, -PHI), (0, -1, PHI), (0, -1, -PHI),
   #     (1, PHI, 0), (1, -PHI, 0), (-1, PHI, 0), (-1, -PHI, 0),
   #     (PHI, 0, 1), (PHI, 0, -1), (-PHI, 0, 1), (-PHI, 0, -1)],
