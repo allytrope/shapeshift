@@ -115,6 +115,33 @@ proc registerAll*(polytope: Polytope, element: Element) =
   for subface in element.subfaces:
     registerAll(polytope = polytope, element = subface)
 
+## Discardable procedures
+# Echo procedures
+# proc `$`*(element: Polytope): string = 
+#   if element.rank() == 0:
+#     $(element.coords)
+#   else:
+#     &"{element.rank}-face"
+proc echo*(element: Polytope) {.discardable.} =
+  echo &"{element.rank}-polytope"
+proc echo*(element: Element) {.discardable.} =
+  if element.rank() == 0:
+    echo element.coords
+  else:
+    echo &"{element.rank}-face"
+    # for subface in element.subfaces:
+    #   echo subface
+# proc echo*(elements: HashSet[Element]) {.discardable.} =
+#   stdout.write("{")
+#   for element in elements:
+#     stdout.write($element & ", ")
+#   stdout.write("\b}")
+# proc echo*(elements: seq[Element]) {.discardable.} =
+#   stdout.write("[")
+#   for element in elements:
+#     stdout.write($element & ", ")
+#   stdout.write("\b]")
+
 # Functions for finding related elements related to another
 # NOTE: Maybe want to redefine superfaces and subfaces to go beyond just n+1 and n-1, respectively
 func superfaces*(element: Element): HashSet[Element] =
@@ -132,12 +159,12 @@ func parents*(element: Element): HashSet[Element] =
   ## Alias for superfaces; that is, (n+1)-faces that contain self.
   return element.superfaces()
 func siblings*(element: Element): HashSet[Element] =
-  ## Return n-faces that share an (n+1)-face with self.
+  ## Return n-faces that share an (n+1)-face with self, besides self.
   var neighbours: HashSet[Element]
   for superface in element.superfaces():
     neighbours = neighbours + superface.subfaces
   #return neighbours.incl(element)
-  return neighbours + toHashSet([element])
+  return neighbours - toHashSet([element])
 func neighbours*(element: Element): HashSet[Element] =
   ## Return n-faces that share an (n-1)-face with self.
   var neighbours: HashSet[Element]
@@ -192,7 +219,8 @@ func intersectedParents*(elements: HashSet[Element]): HashSet[Element] =
               break parentIt
         parents.incl(parent)
   return parents
-  
+func areSiblings*(a, b: Element): bool =
+  intersection(a.parents(), b.parents()).card() > 0
 
 
 # func allSharedElements*(element1: Element, element2: Element): seq[HashSet[Element]] =
@@ -306,33 +334,6 @@ func ambientRank*(model: Polytope): int =
 #     for num in summed_positions.toSeq1D():
 #       num / len(polytope.nfaces(0)).float()
 #   return centroid
-
-## Discardable procedures
-# Echo procedures
-# proc `$`*(element: Polytope): string = 
-#   if element.rank() == 0:
-#     $(element.coords)
-#   else:
-#     &"{element.rank}-face"
-proc echo*(element: Polytope) {.discardable.} =
-  echo &"{element.rank}-polytope"
-proc echo*(element: Element) {.discardable.} =
-  if element.rank() == 0:
-    echo element.coords
-  else:
-    echo &"{element.rank}-face"
-    # for subface in element.subfaces:
-    #   echo subface
-# proc echo*(elements: HashSet[Element]) {.discardable.} =
-#   stdout.write("{")
-#   for element in elements:
-#     stdout.write($element & ", ")
-#   stdout.write("\b}")
-# proc echo*(elements: seq[Element]) {.discardable.} =
-#   stdout.write("[")
-#   for element in elements:
-#     stdout.write($element & ", ")
-#   stdout.write("\b]")
 
 
 proc stats*(polytope: Polytope) {.discardable.} =

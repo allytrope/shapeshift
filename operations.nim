@@ -187,13 +187,14 @@ proc rectify*(polytope: Polytope, depth = 1, allowOverlap = false): Polytope =
   var new_edges: seq[Element]
   for edge_idx, edge in enumerate(polytope.edges):
     for neighbour in edge.neighbours():
-      let
-        neighbour_idx = polytope.edges.find(neighbour)
-        new_edge = newElement(
-          subfaces = @[new_vertices[edge_idx], new_vertices[neighbour_idx]].toHashSet()
-        )
-      if new_edge notin new_edges:
-        new_edges.add(new_edge)
+      if areSiblings(edge, neighbour):
+        let
+          neighbour_idx = polytope.edges.find(neighbour)
+          new_edge = newElement(
+            subfaces = @[new_vertices[edge_idx], new_vertices[neighbour_idx]].toHashSet()
+          )
+        if new_edge notin new_edges:
+          new_edges.add(new_edge)
   new_polytope.register(new_edges)
 
   # Modify faces from existing faces
@@ -203,7 +204,7 @@ proc rectify*(polytope: Polytope, depth = 1, allowOverlap = false): Polytope =
   for face in polytope.faces():
     var new_vertices_of_face: HashSet[Element]
     for edge in face.subfaces:
-      new_vertices_of_face.incl(polytope.vertices[edge.index()])
+      new_vertices_of_face.incl(new_vertices[edge.index()])
     new_faces.add(newElement(
       subfaces = new_vertices_of_face.intersectedParents()
     ))
@@ -225,21 +226,6 @@ proc rectify*(polytope: Polytope, depth = 1, allowOverlap = false): Polytope =
       subfaces = new_vertices2.intersectedParents()
     ))
   new_polytope.register(new_faces2)
-      
-
-
-
-  # var new_faces_from_vertices: seq[Element]
-  # for vertex in polytope.vertices():
-    
-  # var new_face_subfaces: seq[Element]
-  # for vertex_idx, vertex in enumerate(polytope.vertices()):
-  #   if vertex in face.nfaces(0):
-  #     new_face_subfaces.add(new_edges[vertex_idx])
-  # new_faces.add(newElement(
-  #   subfaces = new_face_subfaces.toHashSet()
-  # ))
-
 
   return new_polytope
 proc bitruncate*(polytope: Polytope, depth = 4//3, allowOverlap = false): Polytope =
