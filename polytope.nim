@@ -89,7 +89,9 @@ func rank*(element: Element): int =
   else:
     return rank(element.subfaces.toSeq()[0]) + 1
 func `==`*(a, b: Element): bool =
-  a.subfaces == b.subfaces
+  if a.rank == 0:
+    return a.coords == b.coords
+  return a.subfaces == b.subfaces
 func `!=`*(a, b: Element): bool =
   a.subfaces != b.subfaces
 func index*(element: Element): int =

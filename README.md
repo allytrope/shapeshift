@@ -1,40 +1,17 @@
 # shapeshift
 A GUI application for generating and visualizing polyhedra using geometric operations. This branch is a rewrite of the project in Nim.
 
-## Project Goals
-This tool seeks to include a catalogue of operations that can be applied to polytopes in sequence to generate new polytopes, inlcuding to generale these operations such that they work on polytopes of arbitrary dimension.
+## Description
+This tool seeks to include a catalogue of operations that can be applied to polytopes in sequence to generate new polytopes, inlcuding operations that work on polytopes of arbitrary dimension.
 
+The simplest of the polyhedra, the regular tetrahedron (the 3-simplex) is set as the seed.
+From this most basic shape, operations can be applied to generate new, more complex polyhedra.
+Currently, this tool offers the rectification operation.
 
-Seed polyhedra are provided.
-Operations can then be applied to polyhedra to create new and more complex ones.
+## How to Run
+With Nim and `npx` installed, run the starting script with:
+```bash
+sh run.sh
+```
 
-
-
-## Setup
-`owlkettle` works on Ubuntu 22, but not Ubuntu 20. This is because GTK4 is not available for the later. The GUI also isn't working for Ubuntu 24.
-
-First had to update:
-`sudo apt-get update`
-
-Then install `gcc` (wouldn't work if the above command wasn't run first):
-`sudo apt install gcc`
-
-Then download `choosenim`:
-`curl https://nim-lang.org/choosenim/init.sh -sSf | sh`
-
-Then add `export PATH=/home/allytrope/.nimble/bin:$PATH` to `.profile` or `.bashrc`
-
-For `owlkettle`:
-`sudo apt install libgtk-4-dev libadwaita-1-dev`
-`sudo apt-get install freeglut3`
-`sudo apt-get install libglu1-mesa`
-
-Then install `owlkettle`:
-`nimble install owlkettle`
-`nimble install opengl`
-
-If on Ubuntu 24, it gives these errors:
-`could not load: libGLU.so.1`
-`could not load: libglut.so.3`
-
-For now, I'm testing if it the GUI code runs with this code: https://github.com/nim-lang/opengl/blob/master/examples/glut_example.nim
+Currently, the polyhedron and its operations can be set in bindings_js.nim, and then running the above script will render that polyhedron.
