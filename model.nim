@@ -30,7 +30,7 @@ proc orderVertices*(element: Element): seq[Element] =
       for edge in element.subfaces:
         for vertex in edge.subfaces:
           {vertex}
-    ordered_vertices = @[unordered_vertices.pop()]
+    ordered_vertices = @[unordered_vertices.pop]
   # Follow path through edges using vertices
   while card(unordered_vertices) > 0:
     for vertex in unordered_vertices:
@@ -51,7 +51,7 @@ proc toFaceModel*(polytope: Polytope): FaceModel =
   var unpacked_indices: seq[cint]
   for face in polytope.faces:
     var indices = collect:
-      for vertex in face.orderVertices():
+      for vertex in face.orderVertices:
         vertex.index().cint()
     # Create triangles all coming off of the first vertex
     for n in 1..len(indices)-2:

@@ -84,10 +84,10 @@ func len*(element: Element): int =
 # Helper methods for elements
 func rank*(element: Element): int =
   # Find rank of polytope.
-  if len(element.coords) > 0:
+  if len(element.coords) > 0:  # TODO: It appears that the vertex isn't matching here when called from centroid
     return 0
   else:
-    return rank(element.subfaces.toSeq()[0]) + 1
+    return rank(element.subfaces.toSeq[0]) + 1
 func `==`*(a, b: Element): bool =
   if a.rank == 0:
     return a.coords == b.coords
@@ -95,7 +95,7 @@ func `==`*(a, b: Element): bool =
 func `!=`*(a, b: Element): bool =
   a.subfaces != b.subfaces
 func index*(element: Element): int =
-  let idx = element.polytope.elements[element.rank()].find(element)  
+  let idx = element.polytope.elements[element.rank].find(element)  
   if idx == -1:
     raise newException(IndexDefect, "Element isn't listed in it's own polytope.")
   return idx
@@ -103,7 +103,7 @@ proc register*(polytope: Polytope, element: Element) =
   ## Add element to polytope.
   # if polytope.elements.len 
   # Add element to polytope
-  polytope.elements[element.rank()].add(element)
+  polytope.elements[element.rank].add(element)
 
   # Set reference for polytope in element
   element.polytope = polytope
@@ -117,32 +117,14 @@ proc registerAll*(polytope: Polytope, element: Element) =
   for subface in element.subfaces:
     registerAll(polytope = polytope, element = subface)
 
-## Discardable procedures
 # Echo procedures
-# proc `$`*(element: Polytope): string = 
-#   if element.rank() == 0:
-#     $(element.coords)
-#   else:
-#     &"{element.rank}-face"
-proc echo*(element: Polytope) {.discardable.} =
-  echo &"{element.rank}-polytope"
-proc echo*(element: Element) {.discardable.} =
+func `$`*(element: Element): string =
   if element.rank() == 0:
-    echo element.coords
+    return $element.coords
   else:
-    echo &"{element.rank}-face"
-    # for subface in element.subfaces:
-    #   echo subface
-# proc echo*(elements: HashSet[Element]) {.discardable.} =
-#   stdout.write("{")
-#   for element in elements:
-#     stdout.write($element & ", ")
-#   stdout.write("\b}")
-# proc echo*(elements: seq[Element]) {.discardable.} =
-#   stdout.write("[")
-#   for element in elements:
-#     stdout.write($element & ", ")
-#   stdout.write("\b]")
+    return &"{element.rank}-face"
+func `$`*(polytope: Polytope): string =
+  return &"{polytope.rank}-polytope"
 
 # Functions for finding related elements related to another
 # NOTE: Maybe want to redefine superfaces and subfaces to go beyond just n+1 and n-1, respectively
@@ -153,8 +135,6 @@ func superfaces*(element: Element): HashSet[Element] =
     nplus1faces = element.polytope.elements[element.rank + 1]
   for face in nplus1faces:
     if element in face.subfaces:
-      # debug
-      # debugEcho "Subface" element
       superfaces.incl(face)
   return superfaces
 func parents*(element: Element): HashSet[Element] =
@@ -186,25 +166,27 @@ func subfaces*(element: Element): HashSet[Element] =
 func nfaces*(element: Element, rank: int): HashSet[Element] =
   ## Return n-faces, where n is the "rank" argument, that are within self or that self is within.
   # TODO: Simplify this function
-  if rank > element.rank():
+  if rank > element.rank:
     var 
       faces = element.superfaces
       superfaces: HashSet[Element]
     while true:
-      if toSeq(faces)[0].rank() == rank:
-        return HashSet(faces)
+      if toSeq(faces)[0].rank == rank:
+        return faces
+      # Increase range on each cycle
       for superface in faces:
-        superfaces = superfaces + superface.superfaces
+        # superfaces = superfaces + superface.superfaces
+        superfaces.incl(superface.superfaces)
       faces = superfaces
       superfaces.clear()
-  elif rank == element.rank():
+  elif rank == element.rank:
     return toHashSet([element])
   else:
     var
       faces = element.subfaces
       subfaces: HashSet[Element]
     while true:
-      if toSeq(faces)[0].rank() == rank:
+      if toSeq(faces)[0].rank == rank:
         return HashSet(faces)
       for subface in faces:
         subfaces = subfaces + subface.subfaces
@@ -214,16 +196,22 @@ func intersectedParents*(elements: HashSet[Element]): HashSet[Element] =
   ## Find parent elements whose only children are those in the passed in as "elements"
   var parents: HashSet[Element]
   for element in elements:
-    for parent in element.parents():
+    for parent in element.parents:
       block parentIt:
-        for child in parent.children():
+        for child in parent.children:
           if child notin elements:
               break parentIt
         parents.incl(parent)
   return parents
 func areSiblings*(a, b: Element): bool =
-  intersection(a.parents(), b.parents()).card() > 0
-
+  try:
+    intersection(a.parents, b.parents).card() > 0
+  # Return error if the elements are facets
+  except IndexError:
+    if a.rank == b.rank:
+      return true
+    else:
+      raise newException(RankError, "Elements are not of the same rank.")
 
 # func allSharedElements*(element1: Element, element2: Element): seq[HashSet[Element]] =
 #   ## Find all elements that both are either inside of or contain.
@@ -266,21 +254,37 @@ converter toElement*(model: Polytope): Element =
   return Element(subfaces: toHashSet(model.elements[^1]))
 
 # Functions for coordinates
-func avg*(a, b: Coords): Coords =
-  #var result = zip(a, b).mapIt(it[0] + it[1])
-  var result = zip(a, b).mapIt(it[0] + it[1])
-  result.applyIt(it / 2.0)
-  result  # NOTE: For some reason it won't work without this line
+func avg*(coordss: seq[Coords]): Coords =
+  var current_coords = coordss[0]
+  # Sum coordinates of each vertex
+  for n in 1..coordss.len-1:
+    current_coords = zip(current_coords, coordss[n]).mapIt(it[0] + it[1])
+  # Divide by number of vertices
+  current_coords.applyIt(it / float(len(coordss)))
+  return current_coords
 func `+`(a, b: Coords): Coords =
   zip(a, b).mapIt(it[0] + it[1])
 #func `/`(a: Coords, b: )
-func midpoint*(edge: Element): Element =
-  if edge.rank != 1:
-    raise newException(RankError, "Only edges can have a midpoint.")
+func vertices*(element: Element): HashSet[Element] =
+  # Return all vertices among all iterations of subfaces of element
+  # TODO: Generalize to other k-faces
+  var
+    vertices: HashSet[Element]
+    non_vertices = element.subfaces
+  while non_vertices.len > 0:
+    let non_vertex = non_vertices.pop
+    if non_vertex.rank == 0:
+      vertices.incl(non_vertex)
+    else:
+      non_vertices.incl(non_vertex.subfaces)
+  return vertices
+func centroid*(element: Element): Element =
+  if element.rank < 1:
+    raise newException(RankError, "Only elements of rank 1 or higher can have a centroid.")
   let coordss = collect:
-    for subface in edge.subfaces.toSeq():
-      subface.coords
-  newVertex(avg(coordss[0], coordss[1]))
+    for vertex in element.vertices:
+      vertex.coords
+  newVertex(avg(coordss))
 
 # Find relations between elements
 proc contains*(larger_element: Element, smaller_element: Element): bool =
@@ -317,26 +321,7 @@ func ambientRank*(model: Polytope): int =
   ## The number of dimensions in which the polytope resides in.
   ## Note that this is not always the rank of the shape itself,
   ## such as a square in a 3D space.
-  return toSeq(model.vertices())[0].coords.len()
-
-# Find new elements
-# proc centroid*(polytope: Element): seq[float] =
-#   ## Average of positions in element.
-#   let positions = collect(newSeq):
-#     for vertex in polytope.nfaces(0):
-#       vertex.coords.toTensor()
-#   var summed_positions = repeat(0.0, polytope.ambientRank()).toTensor()
-#   for position in positions:
-#     #echo position
-#     summed_positions += position
-#   # This commented line inexplicably is not working, so instead wrote it in a longer way below.
-#   # It was saying: Error: To subtract a scalar from a tensor you must use the `-.` operator (instead of a plain `-` operator)
-#   # centroid = centroid /. len(polytope.nfaces(0)).float()
-#   var centroid = collect:
-#     for num in summed_positions.toSeq1D():
-#       num / len(polytope.nfaces(0)).float()
-#   return centroid
-
+  return toSeq(model.vertices)[0].coords.len()
 
 proc stats*(polytope: Polytope) {.discardable.} =
   ## Print number of vertices, edges, faces, etc.
@@ -359,7 +344,7 @@ proc faceTypes*(polytope: Element) {.discardable.} =
     8: "octagons", 9: "nonagons", 10: "decagons", 11: "undecagons", 12: "dodecagons"}.toTable
   var polygonCounts: seq[int]
   for face in polytope.subfaces:
-    polygonCounts.add(face.len())
+    polygonCounts.add(face.len)
   for key, value in polygonCounts.toCountTable.pairs:
     if key in polygonNames:
       echo &"{polygonNames[key]}: {value}"

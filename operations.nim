@@ -167,31 +167,44 @@ proc truncate*(
 
 
 
-###### Unimplemented operations ######
-# Specific types of truncation. These all can be callsed just from truncation
-# proc midpoint(E)
 
+## Specific types of truncation. These will be able to be called just from truncation
 proc rectify*(polytope: Polytope, depth = 1, allowOverlap = false): Polytope =
   ## Truncate to where new faces meet at shared vertices.
+  ## 
+  ## Parameters
+  ## ----------
+  ## polytope: Polytope
+  ##     The polytope to be rectified.
+  ## depth: int
+  ##     The depth at which to cut off vertices. 
+  ##     1 corresponds to rectification, while 2 is for birectification.
+  ##     (Currently only depth=1 is functional.)
   if polytope.rank != 3:
     raise newException(RankError, "Operation not implemented for ranks other than 3.")
+  # Validate depth
+  if depth == 0:
+    return polytope
+  elif depth < 0:
+    raise newException(Exception, "Depth parameter cannot be negative.")
+
   var new_polytope = newPolytope(rank = polytope.rank)
 
-  # Create new vertices at midpoints
-  var new_vertices: seq[Element]
-  for edge in polytope.edges:
-    new_vertices.add(edge.midpoint())
+  # Create new vertices at n-faces where n is the specified depth
+  var new_vertices = collect:
+    for element in polytope.elements[depth]:
+      element.centroid 
   new_polytope.register(new_vertices)
 
   # Create new edges
   var new_edges: seq[Element]
-  for edge_idx, edge in enumerate(polytope.edges):
-    for neighbour in edge.neighbours():
-      if areSiblings(edge, neighbour):
+  for element_idx, element in enumerate(polytope.elements[depth]):
+    for neighbour in element.neighbours:
+      if areSiblings(element, neighbour):
         let
-          neighbour_idx = polytope.edges.find(neighbour)
+          neighbour_idx = polytope.elements[depth].find(neighbour)
           new_edge = newElement(
-            subfaces = @[new_vertices[edge_idx], new_vertices[neighbour_idx]].toHashSet()
+            subfaces = @[new_vertices[element_idx], new_vertices[neighbour_idx]].toHashSet()
           )
         if new_edge notin new_edges:
           new_edges.add(new_edge)
@@ -200,34 +213,37 @@ proc rectify*(polytope: Polytope, depth = 1, allowOverlap = false): Polytope =
   # Modify faces from existing faces
   # Logic: old_faces -> old_edges -> new_vertices -> new_edges -> modified_faces
   # New faces in the same order as the original they come from
-  var new_faces: seq[Element]
-  for face in polytope.faces():
-    var new_vertices_of_face: HashSet[Element]
-    for edge in face.subfaces:
-      new_vertices_of_face.incl(new_vertices[edge.index()])
-    new_faces.add(newElement(
-      subfaces = new_vertices_of_face.intersectedParents()
-    ))
-  new_polytope.register(new_faces)
+  # TODO: Continue generalization to include birectification from here
+  var modified_faces: seq[Element]
+  # Only modify existing faces when depth is not equal to the rank of the polytope's facets.
+  # Because otherwise, the facet will have been reduced to a vertex.
+  if depth != polytope.rank - 1:
+    for face in polytope.faces:
+      var new_vertices_of_face: HashSet[Element]
+      for edge in face.subfaces:
+        new_vertices_of_face.incl(new_vertices[edge.index])
+      modified_faces.add(newElement(
+        subfaces = new_vertices_of_face.intersectedParents
+      ))
+  new_polytope.register(modified_faces)
 
   # Create faces by filling in gaps of the newly modified faces
   # Logic option: old vertices -> old_edges -> new_vertices -(intersectedParents)> new_edges -> new_faces
-  var new_faces2: seq[Element]
+  var new_faces: seq[Element]
   for vertex in polytope.vertices:
-    # Find parental edges of original vertices
-    var old_edges = collect:
-      for parent in vertex.parents:
-        {parent}
+    var new_vertices2 = collect:
+      # Find parental edges of original vertices
+      for parent in vertex.nfaces(depth):
+        {new_polytope.vertices[parent.index]}
     # Find the new vertices that surround where the original vertex was 
-    var new_vertices2 = collect():
-      for edge in old_edges:
-        {new_polytope.vertices[edge.index()]}
-    new_faces2.add(newElement(
-      subfaces = new_vertices2.intersectedParents()
+    new_faces.add(newElement(
+      subfaces = new_vertices2.intersectedParents
     ))
-  new_polytope.register(new_faces2)
+  new_polytope.register(new_faces)
 
   return new_polytope
+
+###### Unimplemented operations ######
 proc bitruncate*(polytope: Polytope, depth = 4//3, allowOverlap = false): Polytope =
   ## Truncate beyond rectification.
 proc birectify*(polytope: Polytope, allowOverlap = false): Polytope =
