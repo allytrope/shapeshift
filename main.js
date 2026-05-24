@@ -16,13 +16,25 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.z = 3;
 
-const geometry = new THREE.PolyhedronGeometry(current_model.vertices, current_model.faces, 1, 0);
+// Convert vertices to Float32Array for BufferGeometry. PolyhedronGeometry on the other hand doesn't need this conversion
+const vertices = new Float32Array(current_model.vertices);
+
+// Construct geometry
+const geometry = new THREE.BufferGeometry();
+geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+geometry.setIndex(current_model.faces);
+geometry.computeVertexNormals(); 
+
+// // "PolyhedronGeometry" projects vertices onto a sphere, so often not what is wanted
+// const geometry = new THREE.PolyhedronGeometry(current_model.vertices, current_model.faces, 1, 0);
 
 // Create mesh
 const material = new THREE.MeshLambertMaterial({
     color: 0x9a9aae,
-    side: THREE.DoubleSide
+    side: THREE.DoubleSide,
+    flatShading: true
 });
+
 const polyhedron = new THREE.Mesh( geometry, material );
 scene.add(polyhedron);
 

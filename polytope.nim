@@ -45,7 +45,7 @@ func hash*(element: Element): Hash =
   # Not necessary. Also not even actually correct.
   return hash(element.subfaces) + hash(element.coords)
 
-# Object creation functions
+# Constructors
 func newPolytope*(): Polytope =
   return Polytope()
 # func newPolytope*(rank: int, ambientRank: int): Polytope =
@@ -56,8 +56,6 @@ func newPolytope*(rank: int): Polytope =
   # return Polytope(rank: rank, elements: newSeq[seq[Element]](rank))
   # return Polytope(rank: rank, elements: @[@[]])
   return Polytope(rank: rank, elements: newSeq[seq[Element]](rank))
-
-    
 func newPolytope*(rank: int, elements: seq[seq[Element]]): Polytope =
   ## Create instance of type Polytope
   result = Polytope(rank: rank, elements: elements)
@@ -65,7 +63,6 @@ func newPolytope*(rank: int, elements: seq[seq[Element]]): Polytope =
   for rank in result.elements:
     for element in rank:
       element.polytope = result
-
 func newVertex*(coords: Coords): Element =
   return Element(coords: coords)
 func newElement*(coords: Coords): Element =
@@ -140,23 +137,13 @@ func superfaces*(element: Element): HashSet[Element] =
 func parents*(element: Element): HashSet[Element] =
   ## Alias for superfaces; that is, (n+1)-faces that contain self.
   return element.superfaces()
-func siblings*(element: Element): HashSet[Element] =
-  ## Return n-faces that share an (n+1)-face with self, besides self.
-  var neighbours: HashSet[Element]
-  for superface in element.superfaces():
-    neighbours = neighbours + superface.subfaces
-  #return neighbours.incl(element)
-  return neighbours - toHashSet([element])
-func neighbours*(element: Element): HashSet[Element] =
-  ## Return n-faces that share an (n-1)-face with self.
-  var neighbours: HashSet[Element]
-  for subface in element.subfaces:
-    # TODO: Use "incl()" if possible to not have to recreate the HashSet each time
-    neighbours = neighbours + subface.superfaces()
-  return neighbours - toHashSet([element])
-func neighbours*(element: Element, borderRank: seq[int]): HashSet[Element] =
-  ## Return n-faces that share an m-face with self, where n is the rank of the element and m is the rank specified.
-  # Is it better to specify the objective rank to count as border rank? Or should it be number of ranks below
+
+
+  # # Iterate through elements of polytope 
+  # for element in element.polytope.elements[borderRank]:
+  #   if 
+
+
 func children*(element: Element): HashSet[Element] =
   ## Alias for subfaces property; that is, (n-1)-faces that self contains.
   return element.subfaces
@@ -192,6 +179,38 @@ func nfaces*(element: Element, rank: int): HashSet[Element] =
         subfaces = subfaces + subface.subfaces
       faces = subfaces
       subfaces.clear()
+
+func siblings*(element: Element): HashSet[Element] =
+  ## Return n-faces that share an (n+1)-face with self, besides self.
+  var neighbours: HashSet[Element]
+  for superface in element.superfaces():
+    neighbours = neighbours + superface.subfaces
+  #return neighbours.incl(element)
+  return neighbours - toHashSet([element])
+func neighbours*(element: Element): HashSet[Element] =
+  ## Return n-faces that share an (n-1)-face with self.
+  var neighbours: HashSet[Element]
+  for subface in element.subfaces:
+    # TODO: Use "incl()" if possible to not have to recreate the HashSet each time
+    neighbours = neighbours + subface.superfaces()
+  return neighbours - toHashSet([element])
+func neighbours*(element: Element, borderRank: int): HashSet[Element] =
+  ## Return n-faces of same rank that share a subface (at the specified rank) with self, excluding self.
+  let neighbours = collect:
+    for subface in element.nfaces(borderRank):
+      for superface in subface.nfaces(element.rank):
+        {superface}
+  return neighbours - toHashSet([element])
+
+func areNeighbours*(element1: Element, element2: Element, borderRank: int = 0): bool =
+  ## Return whether two elements are neighbours, as defined by sharing a subface of the specified rank.
+  # for subface in element1.nfaces(borderRank):
+  #   for superface in subface.nfaces(element1.rank):
+  #     if superface == element2:
+  #       return true
+  # return false
+  return element1.nfaces(borderRank).intersection(element2.nfaces(borderRank)).len > 0
+
 func intersectedParents*(elements: HashSet[Element]): HashSet[Element] =
   ## Find parent elements whose only children are those in the passed in as "elements"
   var parents: HashSet[Element]

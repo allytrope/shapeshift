@@ -6,7 +6,9 @@ This tool seeks to include a catalogue of operations that can be applied to poly
 
 The simplest of the polyhedra, the regular tetrahedron (the 3-simplex) is set as the seed.
 From this most basic shape, operations can be applied to generate new, more complex polyhedra.
-Currently, this tool offers the rectification operation.
+Currently, this tool offers the following operations:
+- Rectification
+- Stellation (first stellation on convex polyhedra)
 
 ## How to Run
 With Nim and `npx` installed, run the starting script with:

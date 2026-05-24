@@ -1,7 +1,7 @@
 ## Polyhedron operations (and closely related functions)
 # Note that not all parameters mentioned actually work yet. This is a layout for how the function will work.
 
-import std/[enumerate, rationals, sequtils, sets, sugar]
+import std/[enumerate, rationals, sequtils, sets, sugar, math]
 
 # Local imports
 import polytope #, geometry
@@ -16,17 +16,154 @@ type
     ## Desribes where to determine where `fraction` cuts towards.
     canonicalSphere,  # Intersection with insphere, midsphere, etc.
     centroid  # Average of points
+  PlaneEquation* = tuple
+    ## Represents a plane equation: normal · x = d
+    normal: Coords
+    d: float
 
-#proc find_equation(points: seq[])
+func dot*(a, b: Coords): float =
+  ## Compute dot product of two coordinate vectors.
+  return zip(a, b).mapIt(it[0] * it[1]).foldl(a + b)
 
-# proc pointClosestToOrigin(Element: Element): Element =
-#   ## Find point on element closest to origin.
+func subtract*(a, b: Coords): Coords =
+  ## Subtract coordinate vector b from a.
+  return zip(a, b).mapIt(it[0] - it[1])
 
+func cross3d*(a, b: Coords): Coords =
+  ## Compute 3D cross product. Returns (a[0]*b[1] - a[1]*b[0], ...).
+  ## Requires exactly 3 coordinates.
+  if a.len != 3 or b.len != 3:
+    raise newException(ValueError, "3D cross product requires 3-coordinate vectors")
+  return @[
+    a[1] * b[2] - a[2] * b[1],
+    a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0]
+  ]
 
-# proc findTruncationFractions(): seq[] =
-#   ## Find the positions from n-face to center along which each of
-#   ## rectification, birectification, trirectification, etc are met.
-#   ## This should be helpful for animating truncation.
+func magnitude*(v: Coords): float =
+  ## Compute the magnitude (length) of a vector.
+  return sqrt(dot(v, v))
+
+func normalize*(v: Coords): Coords =
+  ## Normalize a vector to unit length.
+  let mag = magnitude(v)
+  if mag == 0.0:
+    raise newException(ValueError, "Cannot normalize zero vector")
+  return v.mapIt(it / mag)
+
+func computePlaneEquation*(vertices: seq[Coords]): PlaneEquation =
+  ## Compute the plane equation from 3 or more coplanar points.
+  ## Returns a tuple of (normal vector, d) where the plane equation is: normal · x = d
+  ##
+  ## For 3D: Uses cross product of two edge vectors.
+  ## For general n-D: Uses the first n points to compute normal via Gram-Schmidt.
+  
+  if vertices.len < 2:
+    raise newException(ValueError, "Need at least 2 points to define a plane")
+  
+  let dimension = vertices[0].len
+  if dimension == 3 and vertices.len >= 3:
+    # 3D case: use cross product
+    let
+      v1 = subtract(vertices[1], vertices[0])
+      v2 = subtract(vertices[2], vertices[0])
+      normal = cross3d(v1, v2)
+      normalNorm = normalize(normal)
+      d = dot(normalNorm, vertices[0])
+    return (normal: normalNorm, d: d)
+  
+  else:
+    # General n-D case: compute normal using first n points
+    # The normal is orthogonal to all edge vectors
+    var edges: seq[Coords]
+    for i in 1..<min(dimension, vertices.len):
+      edges.add(subtract(vertices[i], vertices[0]))
+    
+    if edges.len < dimension - 1:
+      raise newException(ValueError, 
+        "Not enough linearly independent points to define a plane in " & $dimension & "D space")
+    
+    # Use weighted sum of edges as approximation (could use SVD)
+    var normal = repeat(0.0, dimension - 1)
+    for edge in edges:
+      for i in 0..<dimension:
+        normal[i] += edge[i]
+    
+    let
+      normalNorm = normalize(normal)
+      d = dot(normalNorm, vertices[0])
+    return (normal: normalNorm, d: d)
+
+func findPlaneIntersection*(faces: seq[Element]): Coords =
+  ## Find the intersection of three 3D planes defined by multiple faces.
+  
+  # TODO: Generalize to be able to return lines
+  if faces.len < 3:
+    raise newException(ValueError, "Need at least three faces to find intersecting point.")
+  
+  # Get all plane equations
+  let
+    planeEqs = collect:
+      for face in faces:
+        let vertexCoords = collect:
+          for v in face.vertices:
+            v.coords
+        computePlaneEquation(vertexCoords.toSeq)
+    dimension = planeEqs[0].normal.len
+    numPlanes = planeEqs.len
+  
+  # Build system of linear equations: A * x = b
+  # where A[i] = normal[i], b[i] = d[i]
+  var
+    aMatrix = newSeq[seq[float]](numPlanes)
+    bVector = newSeq[float](numPlanes)
+  
+  for i, planeEq in planeEqs:
+    aMatrix[i] = planeEq.normal
+    bVector[i] = planeEq.d
+  
+  # Solve Ax = b using Gaussian elimination
+  var solution = newSeq[float](dimension)
+  
+  try:    
+    # Gaussian elimination with partial pivoting
+    for col in 0..<min(dimension, numPlanes):
+      # Find pivot
+      var maxRow = col
+      for row in col + 1..<numPlanes:
+        if abs(aMatrix[row][col]) > abs(aMatrix[maxRow][col]):
+          maxRow = row
+      
+      # Swap rows
+      (aMatrix[col], aMatrix[maxRow]) = (aMatrix[maxRow], aMatrix[col])
+      (bVector[col], bVector[maxRow]) = (bVector[maxRow], bVector[col])
+      
+      # Check for singular matrix
+      if abs(aMatrix[col][col]) < 1e-10:
+        continue
+      
+      # Eliminate column
+      for row in col + 1..<numPlanes:
+        if col < aMatrix[row].len:
+          let factor = aMatrix[row][col] / aMatrix[col][col]
+          for j in col..<aMatrix[row].len:
+            aMatrix[row][j] -= factor * aMatrix[col][j]
+          bVector[row] -= factor * bVector[col]
+    
+    # Back substitution
+    for i in countdown(min(dimension, numPlanes) - 1, 0):
+      if i < aMatrix.len and i < aMatrix[i].len:
+        solution[i] = bVector[i]
+        for j in i + 1..<dimension:
+          if j < aMatrix[i].len:
+            solution[i] -= aMatrix[i][j] * solution[j]
+        if abs(aMatrix[i][i]) > 1e-10:
+          solution[i] /= aMatrix[i][i]
+    
+    return solution
+  
+  except:
+    raise newException(ValueError, "Could not solve plane intersection system")
 
 proc truncate*(
   polytope: Polytope;
@@ -213,7 +350,6 @@ proc rectify*(polytope: Polytope, depth = 1, allowOverlap = false): Polytope =
   # Modify faces from existing faces
   # Logic: old_faces -> old_edges -> new_vertices -> new_edges -> modified_faces
   # New faces in the same order as the original they come from
-  # TODO: Continue generalization to include birectification from here
   var modified_faces: seq[Element]
   # Only modify existing faces when depth is not equal to the rank of the polytope's facets.
   # Because otherwise, the facet will have been reduced to a vertex.
@@ -329,6 +465,68 @@ proc excavate*(polytope: Polytope): Polytope =
 proc stellate*(polytope: Polytope, nthStellation: int = 2): Polytope =
   ## Extends edges until meeting other edges, creating new vertices and changing shape of faces.
   ## The base polyhedron is designated as the first stellation, or nth_stellation=1.
+  
+  var new_polytope = newPolytope(rank = polytope.rank)
+
+  # Find the new vertices
+  # old faces -> new vertices
+  let new_vertices = collect:
+    for face in polytope.faces:
+      newVertex(coords = findPlaneIntersection(face.neighbours.toSeq))
+  new_polytope.register(new_vertices)
+
+
+  # Order faces (for finding new edges)
+  # TODO: Maybe generalize this with orderVertices
+  proc orderNeighbours(neighbours: HashSet[Element]): seq[Element] =
+    var
+      unordered_neighbours = collect:
+        for neighbour in neighbours:
+          {neighbour}
+      ordered_neighbours = @[unordered_neighbours.pop]
+    while card(unordered_neighbours) > 0:
+      for neighbour in unordered_neighbours:
+        if areNeighbours(neighbour, ordered_neighbours[^1]):
+          ordered_neighbours.add(neighbour)
+          break
+      unordered_neighbours.excl(ordered_neighbours[^1])
+    return ordered_neighbours
+
+  # Create edges and faces
+  var
+    new_edges: HashSet[Element]
+    new_faces: seq[Element]
+  for face in polytope.faces:
+    let ordered_neighbours = orderNeighbours(face.neighbours)
+    var local_edges: seq[Element]
+    # Find edges by pairing neighbouring vertices, which correspond to old faces
+    for idx in 0 .. len(ordered_neighbours) - 1:
+      if idx == 0:
+        local_edges.add(
+          newElement(
+            subfaces = @[
+              new_vertices[ordered_neighbours[^1].index],
+              new_vertices[ordered_neighbours[0].index]
+            ].toHashSet()
+          ))
+      else:
+        local_edges.add(
+          newElement(
+            subfaces = @[
+              new_vertices[ordered_neighbours[idx - 1].index],
+              new_vertices[ordered_neighbours[idx].index]
+            ].toHashSet()
+          )
+        )
+    new_edges.incl(local_edges.toHashSet)
+    new_faces.add(
+      newElement(subfaces = local_edges.toHashSet())
+    )
+  new_polytope.register(new_edges.toSeq)
+  new_polytope.register(new_faces)
+
+  return new_polytope
+
 proc greaten*(polytope: Polytope): Polytope =
   ## Extend faces to form new larger faces.
 
@@ -339,18 +537,66 @@ proc compound*(polytope: Polytope, n: int): Polytope =
   ## Create a compound of n polytopes. Only works if such a symmetric polytope exists.
   ## There may also be multiple different compounds.
 
+
+proc add*(a, b: Polytope): Polytope {.discardable.} =
+  ## Concatenate the elements of the second polytope to the first.
+  ## This does not connect any of the elements themselves between the polyhedra
+  for rank in 0 .. b.elements.len - 1:
+    a.elements[rank].add(b.elements[rank])
+
 # Operations to extend into next spatial dimension
-proc increaseAmbientDimension*(polytope: Polytope) =
-  ## Add a final coordinate to vertices
-  for vertex in polytope.vertices:
-    vertex.coords.add(0)
+proc increaseAmbientDimension*(polytope: Polytope, distance: float = 0.0, in_place = false): Polytope =
+  ## Add a final coordinate to vertices to existing polytope
+  ## Parameters
+  ## ----------
+  ## distance: float
+  ##     Distance of new coordinate from 0.
+  # Mutate polytope in place
+  if in_place == true:
+    for idx, vertex in enumerate(polytope.elements[0]):
+      # vertex.coords.add(distance)  # Does this also work?
+        polytope.elements[0][idx].coords.add(distance)
+    return polytope
+  
+  var new_polytope = newPolytope(rank = polytope.rank)
+
+  # Create vertices
+  for vertex in polytope.elements[0]:
+    new_polytope.elements[0].add(newVertex(coords = vertex.coords & distance))
+
+  return new_polytope
+
+
 proc prismate*(polytope: Polytope): Polytope =
   ## Drag polytope into adjacent dimension to create a prism of the original polytope.
   ## For example, rectange -> rectangular prism.
   # TODO: Work on this implementation
-  # polytope.increaseAmbientDimension()
-  # for vertex in polytope.vertices:
-  #   new_vertex = vertex.coords[^1] 
+  if polytope.rank != 3:
+    raise newException(RankError, "Operation not implemented for ranks other than 3.")
+
+  # Create two copies of the original polytope translated into the next dimension
+  # TODO: Dynamically adjust the distance into the next dimension
+  var
+    new_polytope = polytope.increaseAmbientDimension(-1.0, in_place = false)
+    new_polytope2 = polytope.increaseAmbientDimension(1.0, in_place = true)
+  new_polytope2.add(new_polytope2)
+
+  # # Create new edges connecting between each pair of "lower" and "higher" vertices
+  debugEcho new_polytope.vertices
+  var
+    offset = new_polytope2.elements[0].len - 1
+    new_edges = collect:
+      for idx in 0 .. offset:
+        debugEcho idx
+        newElement(
+          subfaces = @[new_polytope.elements[0][idx],
+          new_polytope.elements[0][idx + offset]
+          ].toHashSet
+        )
+  new_polytope.register(new_edges)
+
+  return new_polytope
+
 
 proc pyramidate*(polytope: Polytope, height: float = 1.0): Polytope =
   ## Connect vertices to a new vertex (an apex) in the next higher dimension.
