@@ -462,10 +462,17 @@ proc triangulate*(polytope: Polytope): Polytope =
 proc excavate*(polytope: Polytope): Polytope =
   ## Inversion of augmentation. Remove pyramid from polytope's face.
 # Types of stellation
-proc stellate*(polytope: Polytope, nthStellation: int = 2): Polytope =
+proc stellate*(polytope: Polytope, nthStellation: int = 1): Polytope =
   ## Extends edges until meeting other edges, creating new vertices and changing shape of faces.
   ## The base polyhedron is designated as the first stellation, or nth_stellation=1.
   
+  if nthStellation == 0:
+    return polytope
+  elif nthStellation > 1:
+    raise newException(ValueError, "`nthStellation` parameter not yet implemented for stellations beyond the first.")
+  elif polytope.rank != 3:
+    raise newException(RankError, "`stellate` not yet implemented for ranks other than 3.")
+
   var new_polytope = newPolytope(rank = polytope.rank)
 
   # Find the new vertices
@@ -474,7 +481,6 @@ proc stellate*(polytope: Polytope, nthStellation: int = 2): Polytope =
     for face in polytope.faces:
       newVertex(coords = findPlaneIntersection(face.neighbours.toSeq))
   new_polytope.register(new_vertices)
-
 
   # Order faces (for finding new edges)
   # TODO: Maybe generalize this with orderVertices
@@ -492,47 +498,89 @@ proc stellate*(polytope: Polytope, nthStellation: int = 2): Polytope =
       unordered_neighbours.excl(ordered_neighbours[^1])
     return ordered_neighbours
 
-  # Create edges and faces
+  # Create edges
   var
     new_edges: HashSet[Element]
     new_faces: seq[Element]
   for face in polytope.faces:
     let ordered_neighbours = orderNeighbours(face.neighbours)
-    var local_edges: seq[Element]
+    var local_edges: HashSet[Element]
     # Find edges by pairing neighbouring vertices, which correspond to old faces
     for idx in 0 .. len(ordered_neighbours) - 1:
+      var new_edge: Element
       if idx == 0:
-        local_edges.add(
+        new_edge =
           newElement(
             subfaces = @[
               new_vertices[ordered_neighbours[^1].index],
               new_vertices[ordered_neighbours[0].index]
             ].toHashSet()
-          ))
+          )
       else:
-        local_edges.add(
+        new_edge =
           newElement(
             subfaces = @[
               new_vertices[ordered_neighbours[idx - 1].index],
               new_vertices[ordered_neighbours[idx].index]
             ].toHashSet()
           )
-        )
-    new_edges.incl(local_edges.toHashSet)
+      let new_edge_idx = polytope.edges.find(new_edge)
+      if new_edge_idx == -1:
+        new_polytope.register(new_edge)
+      else:
+        new_edge = polytope.edges[new_edge_idx]
+      local_edges.incl(new_edge)
     new_faces.add(
-      newElement(subfaces = local_edges.toHashSet())
+      newElement(subfaces = local_edges)
     )
-  new_polytope.register(new_edges.toSeq)
+    
+
+    # new_edges.incl(local_edges)
+
+  # new_polytope.register(new_edges.toSeq)
+
+  # Create faces
+  # for face in polytope.faces:
+
+
+
   new_polytope.register(new_faces)
 
   return new_polytope
 
 proc greaten*(polytope: Polytope): Polytope =
   ## Extend faces to form new larger faces.
+  
+func separate*(polytope: Polytope): seq[Polytope] =
+  ## Separate compound polytopes into connected components.
 
-# Compound operations
-proc uncouple*(polytope: Polytope): HashSet[Polytope] =
-  ## Separate compound polyhedra.
+  var
+    remainingFacets = toHashSet(polytope.facets)
+    components: seq[HashSet[Element]]
+  while remainingFacets.len > 0:
+    let startFacet = remainingFacets.pop
+    var componentFacets = toHashSet([startFacet])
+
+    proc depthFirstSearch(facet: Element) =
+      ## Directly modifies the outer variables `remainingFacets` and `componentFacets`
+      for neighbour in facet.neighbours:
+        if neighbour in remainingFacets:
+          remainingFacets.excl(neighbour)
+          componentFacets.incl(neighbour)
+          depthFirstSearch(neighbour)
+
+    depthFirstSearch(startFacet)
+    components.add(componentFacets)
+
+  # Make new polytopes
+  var new_polytopes: seq[Polytope]
+  for component in components:
+    let new_polytope = newPolytope(rank = polytope.rank)
+    new_polytope.registerAll(component.toSeq)
+    new_polytopes.add(new_polytope)
+
+  return new_polytopes
+
 proc compound*(polytope: Polytope, n: int): Polytope =
   ## Create a compound of n polytopes. Only works if such a symmetric polytope exists.
   ## There may also be multiple different compounds.
