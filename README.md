@@ -9,6 +9,7 @@ From this most basic shape, operations can be applied to generate new, more comp
 Currently, this tool offers the following operations:
 - Rectification
 - Stellation (first stellation on convex polyhedra)
+- Separation 
 
 ## How to Run
 With Nim and `npx` installed, run the starting script with:

@@ -63,6 +63,44 @@ func newPolytope*(rank: int, elements: seq[seq[Element]]): Polytope =
   for rank in result.elements:
     for element in rank:
       element.polytope = result
+# proc newPolytope*(facets: HashSet[Element]) =
+#   ## Create new polytope from a set of facets.
+  
+#   for facet in facets:
+
+
+
+## TODO: Check
+# proc cloneComponent*(facets: HashSet[Element]): Polytope =
+#   var componentElements: HashSet[Element] = toHashSet(facets.toSeq)
+#   var queue = facets.toSeq
+#   while queue.len > 0:
+#     let element = queue.pop
+#     for subface in element.subfaces:
+#       if subface notin componentElements:
+#         componentElements.incl(subface)
+#         queue.add(subface)
+
+#   var elementsByRank = newSeq[seq[Element]](polytope.rank)
+#   var cloneMap = initTable[Element, Element]()
+
+#   for currentRank in 0 .. polytope.rank - 1:
+#     for oldElement in componentElements:
+#       if oldElement.rank == currentRank:
+#         var newElementInstance: Element
+#         if currentRank == 0:
+#           newElementInstance = newVertex(coords = oldElement.coords)
+#         else:
+#           var newSubfaces: HashSet[Element]
+#           for subface in oldElement.subfaces:
+#             newSubfaces.incl(cloneMap[subface])
+#           newElementInstance = newElement(subfaces = newSubfaces)
+#         cloneMap[oldElement] = newElementInstance
+#         elementsByRank[currentRank].add(newElementInstance)
+
+#   return newPolytope(rank = polytope.rank, elements = elementsByRank)
+
+
 func newVertex*(coords: Coords): Element =
   return Element(coords: coords)
 func newElement*(coords: Coords): Element =
@@ -98,10 +136,8 @@ func index*(element: Element): int =
   return idx
 proc register*(polytope: Polytope, element: Element) =
   ## Add element to polytope.
-  # if polytope.elements.len 
   # Add element to polytope
   polytope.elements[element.rank].add(element)
-
   # Set reference for polytope in element
   element.polytope = polytope
 proc register*(polytope: Polytope, elements: seq[Element]) =
@@ -113,6 +149,13 @@ proc registerAll*(polytope: Polytope, element: Element) =
   register(polytope = polytope, element = element)
   for subface in element.subfaces:
     registerAll(polytope = polytope, element = subface)
+proc registerAll*(polytope: Polytope, elements: seq[Element]) =
+  ## Recursively add element and all its elements to polytope.
+  for element in elements:
+    register(polytope = polytope, element = element)
+    for subface in element.subfaces:
+      registerAll(polytope = polytope, element = subface)
+
 
 # Echo procedures
 func `$`*(element: Element): string =
@@ -264,11 +307,11 @@ func vertices*(polytope: Polytope): seq[Element] =
   return polytope.elements[0]
 
 # Converters
-# converter toPolytope*(polytope: Element): Polytope =
-#   let elements = collect:
-#     for rank in 0..polytope.rank():
-#       toSeq(polytope.nfaces(rank))
-#   return Polytope(elements: elements)
+converter toPolytope*(element: Element): Polytope =
+  let elements = collect:
+    for rank in 0..element.rank():
+      toSeq(element.nfaces(rank))
+  return Polytope(elements: elements)
 converter toElement*(model: Polytope): Element =
   return Element(subfaces: toHashSet(model.elements[^1]))
 
