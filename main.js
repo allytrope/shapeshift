@@ -16,17 +16,35 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.z = 3;
 
-// Convert vertices to Float32Array for BufferGeometry. PolyhedronGeometry on the other hand doesn't need this conversion
-const vertices = new Float32Array(current_model.vertices);
+function constructGeometry(model) {
+    // Convert vertices to Float32Array for BufferGeometry. PolyhedronGeometry on the other hand doesn't need this conversion
+    const vertices = new Float32Array(model.vertices);
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    geometry.setIndex(model.faces);
+    geometry.computeVertexNormals();
+    return geometry;
+}
+
+function setPolyhedronModel(model) {
+    const geometry = constructGeometry(model);
+    polyhedron.geometry.dispose();
+    polyhedron.geometry = geometry;
+}
+
+function updateCurrentModel(operation) {
+    if (operation === 'rectify') {
+        rectifyPolytope();
+    } else if (operation === 'stellate') {
+        stellatePolytope();
+    } else if (operation === 'separate') {
+        separatePolytope();
+    }
+    setPolyhedronModel(current_model);
+}
 
 // Construct geometry
-const geometry = new THREE.BufferGeometry();
-geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-geometry.setIndex(current_model.faces);
-geometry.computeVertexNormals(); 
-
-// // "PolyhedronGeometry" projects vertices onto a sphere, so often not what is wanted
-// const geometry = new THREE.PolyhedronGeometry(current_model.vertices, current_model.faces, 1, 0);
+const geometry = constructGeometry(current_model);
 
 // Create mesh
 const material = new THREE.MeshLambertMaterial({
@@ -48,15 +66,13 @@ directionalLight.position.set(0.1, 0.2, 1)
 camera.add(directionalLight)
 scene.add(camera)
 
-// // const points = [];
-// // points.push( new THREE.Vector3( - 10, 0, 0 ) );
-// // points.push( new THREE.Vector3( 0, 10, 0 ) );
-// // points.push( new THREE.Vector3( 10, 0, 0 ) );
-// // const geometry = new THREE.BufferGeometry().setFromPoints( points );
-// // const material = new THREE.LineBasicMaterial( { color: 0x0000ff } );
-// // const line = new THREE.Line( geometry, material );
-// const line = new THREE.Line( geometry, material );
-// // scene.add( line );
+const btnRectify = document.getElementById('btn-rectify');
+const btnStellate = document.getElementById('btn-stellate');
+const btnSeparate = document.getElementById('btn-separate');
+
+btnRectify?.addEventListener('click', () => updateCurrentModel('rectify'));
+btnStellate?.addEventListener('click', () => updateCurrentModel('stellate'));
+btnSeparate?.addEventListener('click', () => updateCurrentModel('separate'));
 
 // Rotation controls
 const controls = new OrbitControls(camera, renderer.domElement);

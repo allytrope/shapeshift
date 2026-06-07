@@ -4,7 +4,40 @@
 		<meta charset="utf-8">
 		<title>Geomancer – Polyhedron Generator</title>
 		<style>
-			body { margin: 0; }
+			body {
+				margin: 0;
+				overflow: hidden;
+				font-family: system-ui, sans-serif;
+			}
+			#toolbar {
+				position: fixed;
+				left: 0;
+				top: 0;
+				z-index: 100;
+				padding: 16px;
+				display: flex;
+				flex-direction: column;
+				gap: 10px;
+				background: rgba(18, 20, 34, 0.88);
+				color: #fff;
+				backdrop-filter: blur(10px);
+			}
+			#toolbar button {
+				min-width: 140px;
+				padding: 10px 14px;
+				border: 1px solid rgba(255,255,255,0.12);
+				border-radius: 8px;
+				background: #252a47;
+				color: #f8f8ff;
+				font-size: 0.95rem;
+				cursor: pointer;
+			}
+			#toolbar button:hover {
+				background: #3a4164;
+			}
+			#toolbar button:active {
+				transform: translateY(1px);
+			}
 		</style>
         <script type="importmap">
             {
@@ -16,6 +49,11 @@
           </script>
 	</head>
 	<body>
+		<div id="toolbar">
+			<button id="btn-rectify">Rectify</button>
+			<button id="btn-stellate">Stellate</button>
+			<button id="btn-separate">Separate</button>
+		</div>
 		<script type="text/javascript" src="bindings.js"></script>
 		<script type="module" src="/main.js"></script>
 	</body>
